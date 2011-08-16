@@ -63,6 +63,20 @@ struct PropDistanceFieldVoxel
   static const int UNINITIALIZED=-1;
 };
 
+struct SignedPropDistanceFieldVoxel
+{
+    SignedPropDistanceFieldVoxel();
+    SignedPropDistanceFieldVoxel(int distance_sq_positive, int distance_sq_negative);
+    int positive_distance_square_;
+    int negative_distance_square_;
+    int location_[3];
+    int closest_positive_point_[3];
+    int closest_negative_point_[3];
+    int update_direction_;
+
+    static const int UNINITIALIZED=-999;
+};
+
 /**
  * \brief A DistanceField implementation that uses a vector propagation method.
  *
@@ -74,6 +88,7 @@ struct PropDistanceFieldVoxel
 class PropagationDistanceField: public DistanceField<PropDistanceFieldVoxel>
 {
 public:
+
 
   /**
    * \brief Constructor for the DistanceField.
@@ -131,6 +146,84 @@ inline PropDistanceFieldVoxel::PropDistanceFieldVoxel()
 inline double PropagationDistanceField::getDistance(const PropDistanceFieldVoxel& object) const
 {
   return sqrt_table_[object.distance_square_];
+}
+
+
+class SignedPropagationDistanceField : public DistanceField<SignedPropDistanceFieldVoxel>
+{
+  public:
+
+  struct Point3i
+  {
+    int x;
+    int y;
+    int z;
+
+    bool operator==(const Point3i &other) const
+    {
+      return x == other.x && y == other.y && z == other.z;
+    }
+
+    bool operator<(const Point3i &other) const
+    {
+      return (x+y+z) < (other.x+other.y+other.z);
+    }
+  };
+
+    SignedPropagationDistanceField(double size_x, double size_y, double size_z, double resolution, double origin_x,
+                                   double origin_y, double origin_z, double max_distance);
+    virtual ~SignedPropagationDistanceField();
+
+    virtual void addPointsToField(const std::vector<btVector3> points);
+
+    virtual void reset();
+
+  private:
+    std::vector<std::vector<SignedPropDistanceFieldVoxel*> > positive_bucket_queue_;
+    std::vector<std::vector<SignedPropDistanceFieldVoxel*> > negative_bucket_queue_;
+    double max_distance_;
+    int max_distance_sq_;
+
+    std::vector<double> sqrt_table_;
+
+    // [0] - for expansion of d=0
+     // [1] - for expansion of d>=1
+     // Under this, we have the 27 directions
+     // Then, a list of neighborhoods for each direction
+     std::vector<std::vector<std::vector<std::vector<int> > > > neighborhoods_;
+
+     std::vector<std::vector<int> > direction_number_to_direction_;
+
+     virtual double getDistance(const SignedPropDistanceFieldVoxel& object) const;
+     int getDirectionNumber(int dx, int dy, int dz) const;
+     void initNeighborhoods();
+     static int eucDistSq(int* point1, int* point2);
+};
+
+
+
+inline SignedPropDistanceFieldVoxel::SignedPropDistanceFieldVoxel(int distance_sq_positive, int distance_sq_negative):
+  positive_distance_square_(distance_sq_positive),
+  negative_distance_square_(distance_sq_negative)
+{
+    for (int i=0; i<3; i++)
+    {
+      closest_positive_point_[i] = SignedPropDistanceFieldVoxel::UNINITIALIZED;
+      closest_negative_point_[i] = SignedPropDistanceFieldVoxel::UNINITIALIZED;
+    }
+}
+
+inline SignedPropDistanceFieldVoxel::SignedPropDistanceFieldVoxel()
+{
+}
+
+inline double SignedPropagationDistanceField::getDistance(const SignedPropDistanceFieldVoxel& object) const
+{
+  if(object.negative_distance_square_ != 0)
+  {
+  ROS_INFO("Positive Distance %d, Negative Distance %d",object.positive_distance_square_,object.negative_distance_square_ );
+  }
+  return sqrt_table_[object.positive_distance_square_] - sqrt_table_[object.negative_distance_square_];
 }
 
 }
