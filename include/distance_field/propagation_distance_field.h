@@ -63,16 +63,14 @@ struct PropDistanceFieldVoxel
   static const int UNINITIALIZED=-1;
 };
 
-struct SignedPropDistanceFieldVoxel
+struct SignedPropDistanceFieldVoxel : public PropDistanceFieldVoxel
 {
     SignedPropDistanceFieldVoxel();
     SignedPropDistanceFieldVoxel(int distance_sq_positive, int distance_sq_negative);
     int positive_distance_square_;
     int negative_distance_square_;
-    int location_[3];
     int closest_positive_point_[3];
     int closest_negative_point_[3];
-    int update_direction_;
 
     static const int UNINITIALIZED=-999;
 };
@@ -153,23 +151,6 @@ class SignedPropagationDistanceField : public DistanceField<SignedPropDistanceFi
 {
   public:
 
-  struct Point3i
-  {
-    int x;
-    int y;
-    int z;
-
-    bool operator==(const Point3i &other) const
-    {
-      return x == other.x && y == other.y && z == other.z;
-    }
-
-    bool operator<(const Point3i &other) const
-    {
-      return (x+y+z) < (other.x+other.y+other.z);
-    }
-  };
-
     SignedPropagationDistanceField(double size_x, double size_y, double size_z, double resolution, double origin_x,
                                    double origin_y, double origin_z, double max_distance);
     virtual ~SignedPropagationDistanceField();
@@ -221,7 +202,7 @@ inline double SignedPropagationDistanceField::getDistance(const SignedPropDistan
 {
   if(object.negative_distance_square_ != 0)
   {
-  ROS_INFO("Positive Distance %d, Negative Distance %d",object.positive_distance_square_,object.negative_distance_square_ );
+    //ROS_INFO("Positive Distance %d, Negative Distance %d",object.positive_distance_square_,object.negative_distance_square_ );
   }
   return sqrt_table_[object.positive_distance_square_] - sqrt_table_[object.negative_distance_square_];
 }

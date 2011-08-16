@@ -45,11 +45,17 @@
 #include <list>
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
+
 #include <arm_navigation_msgs/CollisionMap.h>
 
 namespace distance_field
 {
-
+  enum PlaneVisualizationType
+  {
+    XYPlane,
+    XZPlane,
+    YZPlane
+  };
 /**
  * \brief A VoxelGrid that can convert a set of obstacle points into a distance field.
  *
@@ -65,6 +71,7 @@ template <typename T>
 class DistanceField: public VoxelGrid<T>
 {
 public:
+
   /**
    * \brief Constructor for the VoxelGrid.
    *
@@ -132,6 +139,17 @@ public:
    * Publishes the gradient of the distance field as visualization markers for rviz.
    */ 
   void visualizeGradient(double min_radius, double max_radius, std::string frame_id, ros::Time stamp);
+
+  /**
+   * \brief Publishes a set of markers to rviz along the specified plane.
+   *
+   * \param type the plane to publish (XZ, XY, YZ)
+   * \param length the size along the first axis to publish in meters.
+   * \param width the size along the second axis to publish in meters.
+   * \param height the position along the orthogonal axis to the plane, in meters.
+   */
+
+  void visualizePlane(PlaneVisualizationType type, double length, double width, double height, btVector3 origin, std::string frame_id, ros::Time stamp);
 
 protected:
   virtual double getDistance(const T& object) const=0;
@@ -330,6 +348,119 @@ void DistanceField<T>::addCollisionMapToField(const arm_navigation_msgs::Collisi
   addPointsToField(points);
 }
 
+template <typename T>
+void DistanceField<T>::visualizePlane(distance_field::PlaneVisualizationType type, double length, double width,
+                                      double height, btVector3 origin, std::string frame_id, ros::Time stamp)
+{
+  visualization_msgs::Marker plane_marker;
+  plane_marker.header.frame_id = frame_id;
+  plane_marker.header.stamp = stamp;
+  plane_marker.ns = "distance_field_plane";
+  plane_marker.id = 1;
+  plane_marker.type = visualization_msgs::Marker::CUBE_LIST;
+  plane_marker.action = visualization_msgs::Marker::ADD;
+  plane_marker.scale.x = this->resolution_[VoxelGrid<T>::DIM_X];
+  plane_marker.scale.y = this->resolution_[VoxelGrid<T>::DIM_Y];
+  plane_marker.scale.z = this->resolution_[VoxelGrid<T>::DIM_Z];
+  //plane_marker.lifetime = ros::Duration(30.0);
+
+  plane_marker.points.reserve(100000);
+  plane_marker.colors.reserve(100000);
+
+  double minX = 0;
+  double maxX = 0;
+  double minY = 0;
+  double maxY = 0;
+  double minZ = 0;
+  double maxZ = 0;
+
+  switch(type)
+  {
+    case XYPlane:
+      minZ = height;
+      maxZ = height;
+
+      minX = -length/2.0;
+      maxX = length/2.0;
+      minY = -width/2.0;
+      maxY = width/2.0;
+      break;
+    case XZPlane:
+      minY = height;
+      maxY = height;
+
+      minX = -length/2.0;
+      maxX = length/2.0;
+      minZ = -width/2.0;
+      maxZ = width/2.0;
+      break;
+    case YZPlane:
+      minX = height;
+      maxX = height;
+
+      minY = -length/2.0;
+      maxY = length/2.0;
+      minZ = -width/2.0;
+      maxZ = width/2.0;
+      break;
+  }
+
+  minX += origin.getX();
+  minY += origin.getY();
+  minZ += origin.getZ();
+
+  maxX += origin.getX();
+  maxY += origin.getY();
+  maxZ += origin.getZ();
+
+  int minXCell = 0;
+  int maxXCell = 0;
+  int minYCell = 0;
+  int maxYCell = 0;
+  int minZCell = 0;
+  int maxZCell = 0;
+
+  this->worldToGrid(minX,minY,minZ, minXCell, minYCell, minZCell);
+  this->worldToGrid(maxX,maxY,maxZ, maxXCell, maxYCell, maxZCell);
+  plane_marker.color.a = 1.0;
+  for(int x = minXCell; x <= maxXCell; ++x)
+  {
+    for(int y = minYCell; y <= maxYCell; ++y)
+    {
+      for(int z = minZCell; z <= maxZCell; ++z)
+      {
+        if(!this->isCellValid(x,y,z))
+        {
+          continue;
+        }
+        double dist = getDistanceFromCell(x, y, z);
+        int last = plane_marker.points.size();
+        plane_marker.points.resize(last + 1);
+        plane_marker.colors.resize(last + 1);
+        double nx, ny, nz;
+        this->gridToWorld(x, y, z, nx, ny, nz);
+        btVector3 vec(nx, ny, nz);
+        plane_marker.points[last].x = vec.x();
+        plane_marker.points[last].y = vec.y();
+        plane_marker.points[last].z = vec.z();
+        if(dist < 0.0)
+        {
+          plane_marker.colors[last].r = fmax(fmin(0.1/fabs(dist), 1.0), 0.0);
+          plane_marker.colors[last].g = fmax(fmin(0.05/fabs(dist), 1.0), 0.0);
+          plane_marker.colors[last].b = fmax(fmin(0.01/fabs(dist), 1.0), 0.0);
+
+        }
+        else
+        {
+          plane_marker.colors[last].b = fmax(fmin(0.1/(dist+0.001), 1.0),0.0);
+          plane_marker.colors[last].g = fmax(fmin(0.05/(dist+0.001), 1.0),0.0);
+          plane_marker.colors[last].r = fmax(fmin(0.01/(dist+0.001), 1.0),0.0);
+        }
+      }
+    }
+  }
+  pub_viz_.publish(plane_marker);
+}
 
 }
 #endif /* DF_DISTANCE_FIELD_H_ */

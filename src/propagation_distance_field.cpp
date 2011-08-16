@@ -275,6 +275,21 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<btVector
   positive_bucket_queue_[0].reserve(points.size());
   negative_bucket_queue_[0].reserve(points.size());
 
+  for(int x = 0; x < num_cells_[0]; x++)
+  {
+    for(int y = 0; y < num_cells_[1]; y++)
+    {
+      for(int z = 0; z < num_cells_[2]; z++)
+      {
+        SignedPropDistanceFieldVoxel& voxel = getCell(x,y,z);
+        voxel.closest_negative_point_[DIM_X] = x;
+        voxel.closest_negative_point_[DIM_Y] = y;
+        voxel.closest_negative_point_[DIM_Z] = z;
+        voxel.negative_distance_square_ = 0;
+      }
+    }
+  }
+
   // first mark all the points as distance=0, and add them to the queue
   int x, y, z, nx, ny, nz;
   int loc[3];
@@ -371,43 +386,36 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<btVector
 
 
   for(unsigned int i = 0; i < points.size(); i++)
-  {
-    bool valid = worldToGrid(points[i].x(), points[i].y(), points[i].z(), x, y, z);
-    if (!valid)
-      continue;
-    SignedPropDistanceFieldVoxel& voxel = getCell(x,y,z);
-
-    for(size_t i = 0; i < neighborhoods_.size(); i++)
     {
+      bool valid = worldToGrid(points[i].x(), points[i].y(), points[i].z(), x, y, z);
+      if(!valid)
+        continue;
 
-      for(size_t j = 0; j < neighborhoods_[i].size(); j++)
+      for(int dx = -1; dx <= 1; dx ++)
       {
-        std::vector<std::vector<int> >* neighborhood = &neighborhoods_[i][j];
-
-        for(unsigned int n = 0; n < neighborhood->size(); n++)
+        for(int dy = -1; dy<= 1; dy ++)
         {
-          int dx = (*neighborhood)[n][DIM_X];
-          int dy = (*neighborhood)[n][DIM_Y];
-          int dz = (*neighborhood)[n][DIM_Z];
-          nx = x + dx;
-          ny = y + dy;
-          nz = z + dz;
-          if(!isCellValid(nx, ny, nz))
-            continue;
-
-          // the real update code:
-          // calculate the neighbor's new distance based on my closest filled voxel:
-          SignedPropDistanceFieldVoxel* neighbor = &getCell(nx, ny, nz);
-
-          if(neighbor->closest_negative_point_[DIM_X] != SignedPropDistanceFieldVoxel::UNINITIALIZED)
+          for(int dz = -1; dz <= 1; dz++)
           {
-            neighbor->update_direction_ = initial_update_direction;
-            negative_bucket_queue_[0].push_back(neighbor);
+            nx = x + dx;
+            ny = y + dy;
+            nz = z + dz;
+
+            if(!isCellValid(nx, ny, nz))
+              continue;
+
+            SignedPropDistanceFieldVoxel* neighbor = &getCell(nx, ny, nz);
+
+            if(neighbor->closest_negative_point_[DIM_X] != SignedPropDistanceFieldVoxel::UNINITIALIZED)
+            {
+              neighbor->update_direction_ = initial_update_direction;
+              negative_bucket_queue_[0].push_back(neighbor);
+            }
           }
         }
       }
+
     }
-  }
 
   for (unsigned int i=0; i<negative_bucket_queue_.size(); ++i)
   {
@@ -546,19 +554,7 @@ void SignedPropagationDistanceField::initNeighborhoods()
     }
   }
 
-  for(int x = 0; x < num_cells_[0]; x++)
-  {
-    for(int y = 0; y < num_cells_[1]; y++)
-    {
-      for(int z = 0; z < num_cells_[2]; z++)
-      {
-        SignedPropDistanceFieldVoxel& voxel = getCell(x,y,z);
-        voxel.closest_negative_point_[DIM_X] = x;
-        voxel.closest_negative_point_[DIM_Y] = y;
-        voxel.closest_negative_point_[DIM_Z] = z;
-      }
-    }
-  }
+
 
 }
 
