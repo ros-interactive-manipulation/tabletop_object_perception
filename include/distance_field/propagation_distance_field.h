@@ -39,7 +39,7 @@
 
 #include <distance_field/voxel_grid.h>
 #include <distance_field/distance_field.h>
-#include <LinearMath/btVector3.h>
+#include <tf/LinearMath/Vector3.h>
 #include <vector>
 #include <list>
 #include <ros/ros.h>
@@ -99,7 +99,7 @@ public:
   /**
    * \brief Add (and expand) a set of points to the distance field.
    */
-  virtual void addPointsToField(const std::vector<btVector3> points);
+  virtual void addPointsToField(const std::vector<tf::Vector3> points);
 
   /**
    * \brief Resets the distance field to the max_distance.
@@ -155,7 +155,7 @@ class SignedPropagationDistanceField : public DistanceField<SignedPropDistanceFi
                                    double origin_y, double origin_z, double max_distance);
     virtual ~SignedPropagationDistanceField();
 
-    virtual void addPointsToField(const std::vector<btVector3> points);
+    virtual void addPointsToField(const std::vector<tf::Vector3> points);
 
     virtual void reset();
 

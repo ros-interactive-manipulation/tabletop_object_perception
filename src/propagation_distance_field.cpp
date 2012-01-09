@@ -67,7 +67,7 @@ int PropagationDistanceField::eucDistSq(int* point1, int* point2)
   return dx*dx + dy*dy + dz*dz;
 }
 
-void PropagationDistanceField::addPointsToField(const std::vector<btVector3> points)
+void PropagationDistanceField::addPointsToField(const std::vector<tf::Vector3> points)
 {
   // initialize the bucket queue
   bucket_queue_.resize(max_distance_sq_+1);
@@ -266,7 +266,7 @@ int SignedPropagationDistanceField::eucDistSq(int* point1, int* point2)
   return dx*dx + dy*dy + dz*dz;
 }
 
-void SignedPropagationDistanceField::addPointsToField(const std::vector<btVector3> points)
+void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vector3> points)
 {
   // initialize the bucket queue
   positive_bucket_queue_.resize(max_distance_sq_+1);

@@ -46,8 +46,8 @@ using namespace distance_field;
 {
   DistanceField df(2.0,2.0,1.0,0.01,-1.0,-1.0, -0.5, 0.15);
 
-  std::vector<btVector3> points;
-  points.push_back(btVector3(0,0,0));
+  std::vector<tf::Vector3> points;
+  points.push_back(tf::Vector3(0,0,0));
   df.addPointsToField(points);
 }
 */

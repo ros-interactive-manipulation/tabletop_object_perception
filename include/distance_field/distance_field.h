@@ -38,9 +38,9 @@
 #define DF_DISTANCE_FIELD_H_
 
 #include <distance_field/voxel_grid.h>
-#include <LinearMath/btVector3.h>
-#include <LinearMath/btQuaternion.h>
-#include <LinearMath/btTransform.h>
+#include <tf/LinearMath/Vector3.h>
+#include <tf/LinearMath/Quaternion.h>
+#include <tf/LinearMath/Transform.h>
 #include <vector>
 #include <list>
 #include <ros/ros.h>
@@ -98,7 +98,7 @@ public:
    * correspondingly. Use the reset() function if you need to remove all points and start
    * afresh.
    */
-  virtual void addPointsToField(const std::vector<btVector3> points)=0;
+  virtual void addPointsToField(const std::vector<tf::Vector3> points)=0;
 
   /**
    * \brief Adds the points in a collision map to the distance field.
@@ -131,7 +131,7 @@ public:
    * Publishes an iso-surface containing points between min_radius and max_radius
    * as visualization markers for rviz.
    */
-  void visualize(double min_radius, double max_radius, std::string frame_id, const btTransform& cur, ros::Time stamp);
+  void visualize(double min_radius, double max_radius, std::string frame_id, const tf::Transform& cur, ros::Time stamp);
 
   /**
    * \brief Publishes the gradient to rviz.
@@ -149,7 +149,7 @@ public:
    * \param height the position along the orthogonal axis to the plane, in meters.
    */
 
-  void visualizePlane(PlaneVisualizationType type, double length, double width, double height, btVector3 origin, std::string frame_id, ros::Time stamp);
+  void visualizePlane(PlaneVisualizationType type, double length, double width, double height, tf::Vector3 origin, std::string frame_id, ros::Time stamp);
 
 protected:
   virtual double getDistance(const T& object) const=0;
@@ -216,7 +216,7 @@ double DistanceField<T>::getDistanceFromCell(int x, int y, int z) const
 
 template <typename T>
 void DistanceField<T>::visualize(double min_radius, double max_radius, std::string frame_id, 
-                                 const btTransform& cur, ros::Time stamp)
+                                 const tf::Transform& cur, ros::Time stamp)
 {
   visualization_msgs::Marker inf_marker; // Marker for the inflation
   inf_marker.header.frame_id = frame_id;
@@ -253,7 +253,7 @@ void DistanceField<T>::visualize(double min_radius, double max_radius, std::stri
           double nx, ny, nz;
           this->gridToWorld(x,y,z,
                             nx, ny, nz);
-          btVector3 vec(nx,ny,nz);
+          tf::Vector3 vec(nx,ny,nz);
           vec = cur*vec;
           inf_marker.points[last].x = vec.x();
           inf_marker.points[last].y = vec.y();
@@ -269,9 +269,9 @@ void DistanceField<T>::visualize(double min_radius, double max_radius, std::stri
 template <typename T>
 void DistanceField<T>::visualizeGradient(double min_radius, double max_radius, std::string frame_id, ros::Time stamp)
 {
-  btVector3 unitX(1, 0, 0);
-  btVector3 unitY(0, 1, 0);
-  btVector3 unitZ(0, 0, 1);
+  tf::Vector3 unitX(1, 0, 0);
+  tf::Vector3 unitY(0, 1, 0);
+  tf::Vector3 unitZ(0, 0, 1);
 
   int id = 0;
 
@@ -286,7 +286,7 @@ void DistanceField<T>::visualizeGradient(double min_radius, double max_radius, s
 
         double gradientX, gradientY, gradientZ;
         double distance = getDistanceGradient(worldX, worldY, worldZ, gradientX, gradientY, gradientZ);
-        btVector3 gradient(gradientX, gradientY, gradientZ);
+        tf::Vector3 gradient(gradientX, gradientY, gradientZ);
 
         if (distance >= min_radius && distance <= max_radius && gradient.length() > 0)
         {
@@ -304,9 +304,9 @@ void DistanceField<T>::visualizeGradient(double min_radius, double max_radius, s
           marker.pose.position.y = worldY;
           marker.pose.position.z = worldZ;
 
-          btVector3 axis = gradient.cross(unitX).length() > 0 ? gradient.cross(unitX) : unitY;
-          btScalar angle = -gradient.angle(unitX);
-          btQuaternion rotation = btQuaternion(axis, angle);
+          tf::Vector3 axis = gradient.cross(unitX).length() > 0 ? gradient.cross(unitX) : unitY;
+          tfScalar angle = -gradient.angle(unitX);
+          tf::Quaternion rotation = tf::Quaternion(axis, angle);
 
           marker.pose.orientation.x = rotation.x();
           marker.pose.orientation.y = rotation.y();
@@ -335,11 +335,11 @@ template <typename T>
 void DistanceField<T>::addCollisionMapToField(const arm_navigation_msgs::CollisionMap &collision_map)
 {
   size_t num_boxes = collision_map.boxes.size();
-  std::vector<btVector3> points;
+  std::vector<tf::Vector3> points;
   points.reserve(num_boxes);
   for (size_t i=0; i<num_boxes; ++i)
   {
-    points.push_back(btVector3(
+    points.push_back(tf::Vector3(
         collision_map.boxes[i].center.x,
         collision_map.boxes[i].center.y,
         collision_map.boxes[i].center.z
@@ -350,7 +350,7 @@ void DistanceField<T>::addCollisionMapToField(const arm_navigation_msgs::Collisi
 
 template <typename T>
 void DistanceField<T>::visualizePlane(distance_field::PlaneVisualizationType type, double length, double width,
-                                      double height, btVector3 origin, std::string frame_id, ros::Time stamp)
+                                      double height, tf::Vector3 origin, std::string frame_id, ros::Time stamp)
 {
   visualization_msgs::Marker plane_marker;
   plane_marker.header.frame_id = frame_id;
@@ -439,7 +439,7 @@ void DistanceField<T>::visualizePlane(distance_field::PlaneVisualizationType typ
         plane_marker.colors.resize(last + 1);
         double nx, ny, nz;
         this->gridToWorld(x, y, z, nx, ny, nz);
-        btVector3 vec(nx, ny, nz);
+        tf::Vector3 vec(nx, ny, nz);
         plane_marker.points[last].x = vec.x();
         plane_marker.points[last].y = vec.y();
         plane_marker.points[last].z = vec.z();

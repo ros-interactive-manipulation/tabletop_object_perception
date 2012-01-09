@@ -52,7 +52,7 @@ PFDistanceField::~PFDistanceField()
 {
 }
 
-void PFDistanceField::addPointsToField(const std::vector<btVector3> points)
+void PFDistanceField::addPointsToField(const std::vector<tf::Vector3> points)
 {
   int x, y, z;
   float init = 0.0;
