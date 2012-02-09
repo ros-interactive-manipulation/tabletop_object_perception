@@ -125,9 +125,5 @@ TEST(TestPropagationDistanceField, TestAddPoints)
 int main(int argc, char **argv){
   testing::InitGoogleTest(&argc, argv);
 
-  // TODO - eventually put into rosunit framework.
-  system("roscore &");
-
-  ros::init (argc, argv, "test_distance_field");
   return RUN_ALL_TESTS();
 }

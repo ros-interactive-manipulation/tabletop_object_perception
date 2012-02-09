@@ -126,36 +126,43 @@ public:
   double getDistanceFromCell(int x, int y, int z) const;
 
   /**
-   * \brief Publishes an iso-surface to rviz.
+   * \brief Get an iso-surface for visualizaion in rviz.
    *
-   * Publishes an iso-surface containing points between min_radius and max_radius
-   * as visualization markers for rviz.
+   * Gets an iso-surface containing points between min_radius and max_radius
+   * as visualization markers.
+   * \param marker the marker to be published
    */
-  void visualize(double min_radius, double max_radius, std::string frame_id, const tf::Transform& cur, ros::Time stamp);
+  void getIsoSurfaceMarkers(double min_radius, double max_radius, const tf::Transform& cur,
+                            const std::string & frame_id, const ros::Time stamp,
+                            visualization_msgs::Marker& marker );
 
   /**
-   * \brief Publishes the gradient to rviz.
+   * \brief Get an array of markers that can be published to rviz
    *
-   * Publishes the gradient of the distance field as visualization markers for rviz.
-   */ 
-  void visualizeGradient(double min_radius, double max_radius, std::string frame_id, ros::Time stamp);
+   * Gets the gradient of the distance field as visualization markers for rviz.
+   * \param markers the marker array to be published
+   */
+  void getGradientMarkers(double min_radius, double max_radius,
+                          const std::string & frame_id, const ros::Time stamp,
+                          std::vector<visualization_msgs::Marker>& markers );
 
   /**
-   * \brief Publishes a set of markers to rviz along the specified plane.
+   * \brief Gets a set of markers to rviz along the specified plane.
    *
-   * \param type the plane to publish (XZ, XY, YZ)
-   * \param length the size along the first axis to publish in meters.
-   * \param width the size along the second axis to publish in meters.
+   * \param type the plane to show (XZ, XY, YZ)
+   * \param length the size along the first axis in meters.
+   * \param width the size along the second axis in meters.
    * \param height the position along the orthogonal axis to the plane, in meters.
+   * \param marker the marker to be published
    */
-
-  void visualizePlane(PlaneVisualizationType type, double length, double width, double height, tf::Vector3 origin, std::string frame_id, ros::Time stamp);
+  void getPlaneMarkers(PlaneVisualizationType type, double length, double width, double height, tf::Vector3 origin,
+                       const std::string & frame_id, const ros::Time stamp,
+                       visualization_msgs::Marker& marker );
 
 protected:
   virtual double getDistance(const T& object) const=0;
 
 private:
-  ros::Publisher pub_viz_;
   int inv_twice_resolution_;
 };
 
@@ -172,8 +179,6 @@ DistanceField<T>::DistanceField(double size_x, double size_y, double size_z, dou
     double origin_x, double origin_y, double origin_z, T default_object):
       VoxelGrid<T>(size_x, size_y, size_z, resolution, origin_x, origin_y, origin_z, default_object)
 {
-  ros::NodeHandle node;
-  pub_viz_ = node.advertise<visualization_msgs::Marker>("visualization_marker", 3);
   inv_twice_resolution_ = 1.0/(2.0*resolution);
 }
 
@@ -215,10 +220,11 @@ double DistanceField<T>::getDistanceFromCell(int x, int y, int z) const
 }
 
 template <typename T>
-void DistanceField<T>::visualize(double min_radius, double max_radius, std::string frame_id, 
-                                 const tf::Transform& cur, ros::Time stamp)
+void DistanceField<T>::getIsoSurfaceMarkers(double min_radius, double max_radius, const tf::Transform& cur,
+                                            const std::string & frame_id, const ros::Time stamp,
+                                            visualization_msgs::Marker& inf_marker )
 {
-  visualization_msgs::Marker inf_marker; // Marker for the inflation
+  inf_marker.points.clear();
   inf_marker.header.frame_id = frame_id;
   inf_marker.header.stamp = stamp;
   inf_marker.ns = "distance_field";
@@ -262,12 +268,12 @@ void DistanceField<T>::visualize(double min_radius, double max_radius, std::stri
       }
     }
   }
-  ROS_DEBUG("Publishing markers: %u/%d inflated", (unsigned int) inf_marker.points.size(), num_total_cells);
-  pub_viz_.publish(inf_marker);
 }
 
 template <typename T>
-void DistanceField<T>::visualizeGradient(double min_radius, double max_radius, std::string frame_id, ros::Time stamp)
+void DistanceField<T>::getGradientMarkers( double min_radius, double max_radius,
+                                           const std::string & frame_id, const ros::Time stamp,
+                                           std::vector<visualization_msgs::Marker>& markers )
 {
   tf::Vector3 unitX(1, 0, 0);
   tf::Vector3 unitY(0, 1, 0);
@@ -322,9 +328,7 @@ void DistanceField<T>::visualizeGradient(double min_radius, double max_radius, s
           marker.color.b = 1.0;
           marker.color.a = 1.0;
 
-          //marker.lifetime = ros::Duration(30.0);
-
-          pub_viz_.publish(marker);
+          markers.push_back(marker);
         }
       }
     }
@@ -349,10 +353,11 @@ void DistanceField<T>::addCollisionMapToField(const arm_navigation_msgs::Collisi
 }
 
 template <typename T>
-void DistanceField<T>::visualizePlane(distance_field::PlaneVisualizationType type, double length, double width,
-                                      double height, tf::Vector3 origin, std::string frame_id, ros::Time stamp)
+void DistanceField<T>::getPlaneMarkers(distance_field::PlaneVisualizationType type, double length, double width,
+                                      double height, tf::Vector3 origin,
+                                      const std::string & frame_id, const ros::Time stamp,
+                                      visualization_msgs::Marker& plane_marker )
 {
-  visualization_msgs::Marker plane_marker;
   plane_marker.header.frame_id = frame_id;
   plane_marker.header.stamp = stamp;
   plane_marker.ns = "distance_field_plane";
@@ -459,7 +464,6 @@ void DistanceField<T>::visualizePlane(distance_field::PlaneVisualizationType typ
       }
     }
   }
-  pub_viz_.publish(plane_marker);
 }
 
 }
