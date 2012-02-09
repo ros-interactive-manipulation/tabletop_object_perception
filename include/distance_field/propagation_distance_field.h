@@ -52,6 +52,7 @@ struct int3
 {
   int3() : x_(0), y_(0), z_(0) {};
   int3( int x, int y, int z ) : x_(x), y_(y), z_(z) {};
+  int3( int value ) : x_(value), y_(value), z_(value) {};
 
   int x_;
   int y_;
@@ -67,8 +68,8 @@ struct PropDistanceFieldVoxel
   PropDistanceFieldVoxel(int distance_sq);
 
   int distance_square_;         /**< Squared distance from the closest obstacle */
-  int location_[3];             /**< Grid location of this voxel */
-  int closest_point_[3];        /**< Closes obstacle from this voxel */
+  int3 location_;     	        /**< Grid location of this voxel */
+  int3 closest_point_;	        /**< Closes obstacle from this voxel */
   int update_direction_;        /**< Direction from which this voxel was updated */
 
   static const int UNINITIALIZED=-1;
@@ -80,8 +81,8 @@ struct SignedPropDistanceFieldVoxel : public PropDistanceFieldVoxel
     SignedPropDistanceFieldVoxel(int distance_sq_positive, int distance_sq_negative);
     int positive_distance_square_;
     int negative_distance_square_;
-    int closest_positive_point_[3];
-    int closest_negative_point_[3];
+    int3 closest_positive_point_;
+    int3 closest_negative_point_;
 
     static const int UNINITIALIZED=-999;
 };
@@ -134,15 +135,15 @@ private:
   // [1] - for expansion of d>=1
   // Under this, we have the 27 directions
   // Then, a list of neighborhoods for each direction
-  std::vector<std::vector<std::vector<std::vector<int> > > > neighborhoods_;
+  std::vector<std::vector<std::vector<int3 > > > neighborhoods_;
 
-  std::vector<std::vector<int> > direction_number_to_direction_;
+  std::vector<int3 > direction_number_to_direction_;
 
   void addNewObstacleVoxels(const std::vector<int3>& points);
   virtual double getDistance(const PropDistanceFieldVoxel& object) const;
   int getDirectionNumber(int dx, int dy, int dz) const;
   void initNeighborhoods();
-  static int eucDistSq(int* point1, int* point2);
+  static int eucDistSq(int3 point1, int3 point2);
 };
 
 ////////////////////////// inline functions follow ////////////////////////////////////////
@@ -150,8 +151,9 @@ private:
 inline PropDistanceFieldVoxel::PropDistanceFieldVoxel(int distance_sq):
   distance_square_(distance_sq)
 {
-    for (int i=0; i<3; i++)
-      closest_point_[i] = PropDistanceFieldVoxel::UNINITIALIZED;
+  closest_point_.x_ = PropDistanceFieldVoxel::UNINITIALIZED;
+  closest_point_.y_ = PropDistanceFieldVoxel::UNINITIALIZED;
+  closest_point_.z_ = PropDistanceFieldVoxel::UNINITIALIZED;
 }
 
 inline PropDistanceFieldVoxel::PropDistanceFieldVoxel()
@@ -188,27 +190,24 @@ class SignedPropagationDistanceField : public DistanceField<SignedPropDistanceFi
      // [1] - for expansion of d>=1
      // Under this, we have the 27 directions
      // Then, a list of neighborhoods for each direction
-     std::vector<std::vector<std::vector<std::vector<int> > > > neighborhoods_;
+     std::vector<std::vector<std::vector<int3 > > > neighborhoods_;
 
-     std::vector<std::vector<int> > direction_number_to_direction_;
+     std::vector<int3 > direction_number_to_direction_;
 
      virtual double getDistance(const SignedPropDistanceFieldVoxel& object) const;
      int getDirectionNumber(int dx, int dy, int dz) const;
      void initNeighborhoods();
-     static int eucDistSq(int* point1, int* point2);
+     static int eucDistSq(int3 point1, int3 point2);
 };
 
 
 
 inline SignedPropDistanceFieldVoxel::SignedPropDistanceFieldVoxel(int distance_sq_positive, int distance_sq_negative):
   positive_distance_square_(distance_sq_positive),
-  negative_distance_square_(distance_sq_negative)
+  negative_distance_square_(distance_sq_negative),
+  closest_positive_point_(SignedPropDistanceFieldVoxel::UNINITIALIZED),
+  closest_negative_point_(SignedPropDistanceFieldVoxel::UNINITIALIZED)
 {
-    for (int i=0; i<3; i++)
-    {
-      closest_positive_point_[i] = SignedPropDistanceFieldVoxel::UNINITIALIZED;
-      closest_negative_point_[i] = SignedPropDistanceFieldVoxel::UNINITIALIZED;
-    }
 }
 
 inline SignedPropDistanceFieldVoxel::SignedPropDistanceFieldVoxel()

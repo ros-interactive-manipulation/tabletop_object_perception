@@ -59,11 +59,11 @@ PropagationDistanceField::PropagationDistanceField(double size_x, double size_y,
     sqrt_table_[i] = sqrt(double(i))*resolution;
 }
 
-int PropagationDistanceField::eucDistSq(int* point1, int* point2)
+int PropagationDistanceField::eucDistSq(int3 point1, int3 point2)
 {
-  int dx = point1[DIM_X] - point2[DIM_X];
-  int dy = point1[DIM_Y] - point2[DIM_Y];
-  int dz = point1[DIM_Z] - point2[DIM_Z];
+  int dx = point1.x_ - point2.x_;
+  int dy = point1.y_ - point2.y_;
+  int dz = point1.z_ - point2.z_;
   return dx*dx + dy*dy + dz*dz;
 }
 
@@ -136,7 +136,7 @@ void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& vox
   bucket_queue_[0].reserve(voxels.size());
   // first mark all the voxels as distance=0, and add them to the queue
   int x, y, z, nx, ny, nz;
-  int loc[3];
+  int3 loc;
   int initial_update_direction = getDirectionNumber(0,0,0);
   for (unsigned int i=0; i<voxels.size(); ++i)
   {
@@ -148,12 +148,8 @@ void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& vox
       continue;
     PropDistanceFieldVoxel& voxel = getCell(x,y,z);
     voxel.distance_square_ = 0;
-    voxel.closest_point_[DIM_X] = x;
-    voxel.closest_point_[DIM_Y] = y;
-    voxel.closest_point_[DIM_Z] = z;
-    voxel.location_[DIM_X] = x;
-    voxel.location_[DIM_Y] = y;
-    voxel.location_[DIM_Z] = z;
+    voxel.closest_point_ = voxels[i];
+    voxel.location_ = voxels[i];
     voxel.update_direction_ = initial_update_direction;
     bucket_queue_[0].push_back(&voxel);
   }
@@ -166,12 +162,12 @@ void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& vox
     {
       PropDistanceFieldVoxel* vptr = *list_it;
 
-      x = vptr->location_[DIM_X];
-      y = vptr->location_[DIM_Y];
-      z = vptr->location_[DIM_Z];
+      x = vptr->location_.x_;
+      y = vptr->location_.y_;
+      z = vptr->location_.z_;
 
       // select the neighborhood list based on the update direction:
-      std::vector<std::vector<int> >* neighborhood;
+      std::vector<int3 >* neighborhood;
       int D = i;
       if (D>1)
         D=1;
@@ -187,9 +183,9 @@ void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& vox
 
       for (unsigned int n=0; n<neighborhood->size(); n++)
       {
-        int dx = (*neighborhood)[n][DIM_X];
-        int dy = (*neighborhood)[n][DIM_Y];
-        int dz = (*neighborhood)[n][DIM_Z];
+        int dx = (*neighborhood)[n].x_;
+        int dy = (*neighborhood)[n].y_;
+        int dz = (*neighborhood)[n].z_;
         nx = x + dx;
         ny = y + dy;
         nz = z + dz;
@@ -199,9 +195,9 @@ void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& vox
         // the real update code:
         // calculate the neighbor's new distance based on my closest filled voxel:
         PropDistanceFieldVoxel* neighbor = &getCell(nx, ny, nz);
-        loc[DIM_X] = nx;
-        loc[DIM_Y] = ny;
-        loc[DIM_Z] = nz;
+        loc.x_ = nx;
+        loc.y_ = ny;
+        loc.z_ = nz;
         int new_distance_sq = eucDistSq(vptr->closest_point_, loc);
         if (new_distance_sq > max_distance_sq_)
           continue;
@@ -209,12 +205,8 @@ void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& vox
         {
           // update the neighboring voxel
           neighbor->distance_square_ = new_distance_sq;
-          neighbor->closest_point_[DIM_X] = vptr->closest_point_[DIM_X];
-          neighbor->closest_point_[DIM_Y] = vptr->closest_point_[DIM_Y];
-          neighbor->closest_point_[DIM_Z] = vptr->closest_point_[DIM_Z];
-          neighbor->location_[DIM_X] = loc[DIM_X];
-          neighbor->location_[DIM_Y] = loc[DIM_Y];
-          neighbor->location_[DIM_Z] = loc[DIM_Z];
+          neighbor->closest_point_ = vptr->closest_point_;
+          neighbor->location_ = loc;
           neighbor->update_direction_ = getDirectionNumber(dx, dy, dz);
 
           // and put it in the queue:
@@ -245,10 +237,7 @@ void PropagationDistanceField::initNeighborhoods()
       for (int dz=-1; dz<=1; ++dz)
       {
         int direction_number = getDirectionNumber(dx, dy, dz);
-        std::vector<int> n_point(3);
-        n_point[DIM_X] = dx;
-        n_point[DIM_Y] = dy;
-        n_point[DIM_Z] = dz;
+        int3 n_point( dx, dy, dz);
         direction_number_to_direction_[direction_number] = n_point;
       }
     }
@@ -282,10 +271,7 @@ void PropagationDistanceField::initNeighborhoods()
                   if (dx*tdx<0 || dy*tdy<0 || dz*tdz <0)
                     continue;
                 }
-                std::vector<int> n_point(3);
-                n_point[DIM_X] = tdx;
-                n_point[DIM_Y] = tdy;
-                n_point[DIM_Z] = tdz;
+                int3 n_point(tdx,tdy,tdz);
                 neighborhoods_[n][direction_number].push_back(n_point);
               }
             }
@@ -322,11 +308,11 @@ SignedPropagationDistanceField::SignedPropagationDistanceField(double size_x, do
     sqrt_table_[i] = sqrt(double(i))*resolution;
 }
 
-int SignedPropagationDistanceField::eucDistSq(int* point1, int* point2)
+int SignedPropagationDistanceField::eucDistSq(int3 point1, int3 point2)
 {
-  int dx = point1[DIM_X] - point2[DIM_X];
-  int dy = point1[DIM_Y] - point2[DIM_Y];
-  int dz = point1[DIM_Z] - point2[DIM_Z];
+  int dx = point1.x_ - point2.x_;
+  int dy = point1.y_ - point2.y_;
+  int dz = point1.z_ - point2.z_;
   return dx*dx + dy*dy + dz*dz;
 }
 
@@ -346,9 +332,9 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
       for(int z = 0; z < num_cells_[2]; z++)
       {
         SignedPropDistanceFieldVoxel& voxel = getCell(x,y,z);
-        voxel.closest_negative_point_[DIM_X] = x;
-        voxel.closest_negative_point_[DIM_Y] = y;
-        voxel.closest_negative_point_[DIM_Z] = z;
+        voxel.closest_negative_point_.x_ = x;
+        voxel.closest_negative_point_.y_ = y;
+        voxel.closest_negative_point_.z_ = z;
         voxel.negative_distance_square_ = 0;
       }
     }
@@ -356,7 +342,7 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
 
   // first mark all the points as distance=0, and add them to the queue
   int x, y, z, nx, ny, nz;
-  int loc[3];
+  int3 loc;
   int initial_update_direction = getDirectionNumber(0,0,0);
   for (unsigned int i=0; i<points.size(); ++i)
   {
@@ -366,15 +352,15 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
     SignedPropDistanceFieldVoxel& voxel = getCell(x,y,z);
     voxel.positive_distance_square_ = 0;
     voxel.negative_distance_square_ = max_distance_sq_;
-    voxel.closest_positive_point_[DIM_X] = x;
-    voxel.closest_positive_point_[DIM_Y] = y;
-    voxel.closest_positive_point_[DIM_Z] = z;
-    voxel.closest_negative_point_[DIM_X] = SignedPropDistanceFieldVoxel::UNINITIALIZED;
-    voxel.closest_negative_point_[DIM_Y] = SignedPropDistanceFieldVoxel::UNINITIALIZED;
-    voxel.closest_negative_point_[DIM_Z] = SignedPropDistanceFieldVoxel::UNINITIALIZED;
-    voxel.location_[DIM_X] = x;
-    voxel.location_[DIM_Y] = y;
-    voxel.location_[DIM_Z] = z;
+    voxel.closest_positive_point_.x_ = x;
+    voxel.closest_positive_point_.y_ = y;
+    voxel.closest_positive_point_.z_ = z;
+    voxel.closest_negative_point_.x_ = SignedPropDistanceFieldVoxel::UNINITIALIZED;
+    voxel.closest_negative_point_.y_ = SignedPropDistanceFieldVoxel::UNINITIALIZED;
+    voxel.closest_negative_point_.z_ = SignedPropDistanceFieldVoxel::UNINITIALIZED;
+    voxel.location_.x_ = x;
+    voxel.location_.y_ = y;
+    voxel.location_.z_ = z;
     voxel.update_direction_ = initial_update_direction;
     positive_bucket_queue_[0].push_back(&voxel);
   }
@@ -387,12 +373,12 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
     {
       SignedPropDistanceFieldVoxel* vptr = *list_it;
 
-      x = vptr->location_[DIM_X];
-      y = vptr->location_[DIM_Y];
-      z = vptr->location_[DIM_Z];
+      x = vptr->location_.x_;
+      y = vptr->location_.y_;
+      z = vptr->location_.z_;
 
       // select the neighborhood list based on the update direction:
-      std::vector<std::vector<int> >* neighborhood;
+      std::vector<int3 >* neighborhood;
       int D = i;
       if (D>1)
         D=1;
@@ -408,9 +394,9 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
 
       for (unsigned int n=0; n<neighborhood->size(); n++)
       {
-        int dx = (*neighborhood)[n][DIM_X];
-        int dy = (*neighborhood)[n][DIM_Y];
-        int dz = (*neighborhood)[n][DIM_Z];
+        int dx = (*neighborhood)[n].x_;
+        int dy = (*neighborhood)[n].y_;
+        int dz = (*neighborhood)[n].z_;
         nx = x + dx;
         ny = y + dy;
         nz = z + dz;
@@ -420,9 +406,9 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
         // the real update code:
         // calculate the neighbor's new distance based on my closest filled voxel:
         SignedPropDistanceFieldVoxel* neighbor = &getCell(nx, ny, nz);
-        loc[DIM_X] = nx;
-        loc[DIM_Y] = ny;
-        loc[DIM_Z] = nz;
+        loc.x_ = nx;
+        loc.y_ = ny;
+        loc.z_ = nz;
         int new_distance_sq = eucDistSq(vptr->closest_positive_point_, loc);
         if (new_distance_sq > max_distance_sq_)
           continue;
@@ -430,12 +416,8 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
         {
           // update the neighboring voxel
           neighbor->positive_distance_square_ = new_distance_sq;
-          neighbor->closest_positive_point_[DIM_X] = vptr->closest_positive_point_[DIM_X];
-          neighbor->closest_positive_point_[DIM_Y] = vptr->closest_positive_point_[DIM_Y];
-          neighbor->closest_positive_point_[DIM_Z] = vptr->closest_positive_point_[DIM_Z];
-          neighbor->location_[DIM_X] = loc[DIM_X];
-          neighbor->location_[DIM_Y] = loc[DIM_Y];
-          neighbor->location_[DIM_Z] = loc[DIM_Z];
+          neighbor->closest_positive_point_ = vptr->closest_positive_point_;
+          neighbor->location_ = loc;
           neighbor->update_direction_ = getDirectionNumber(dx, dy, dz);
 
           // and put it in the queue:
@@ -470,7 +452,7 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
 
             SignedPropDistanceFieldVoxel* neighbor = &getCell(nx, ny, nz);
 
-            if(neighbor->closest_negative_point_[DIM_X] != SignedPropDistanceFieldVoxel::UNINITIALIZED)
+            if(neighbor->closest_negative_point_.x_ != SignedPropDistanceFieldVoxel::UNINITIALIZED)
             {
               neighbor->update_direction_ = initial_update_direction;
               negative_bucket_queue_[0].push_back(neighbor);
@@ -488,12 +470,12 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
     {
       SignedPropDistanceFieldVoxel* vptr = *list_it;
 
-      x = vptr->location_[DIM_X];
-      y = vptr->location_[DIM_Y];
-      z = vptr->location_[DIM_Z];
+      x = vptr->location_.x_;
+      y = vptr->location_.y_;
+      z = vptr->location_.z_;
 
       // select the neighborhood list based on the update direction:
-      std::vector<std::vector<int> >* neighborhood;
+      std::vector<int3 >* neighborhood;
       int D = i;
       if (D>1)
         D=1;
@@ -509,9 +491,9 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
 
       for (unsigned int n=0; n<neighborhood->size(); n++)
       {
-        int dx = (*neighborhood)[n][DIM_X];
-        int dy = (*neighborhood)[n][DIM_Y];
-        int dz = (*neighborhood)[n][DIM_Z];
+        int dx = (*neighborhood)[n].x_;
+        int dy = (*neighborhood)[n].y_;
+        int dz = (*neighborhood)[n].z_;
         nx = x + dx;
         ny = y + dy;
         nz = z + dz;
@@ -521,9 +503,9 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
         // the real update code:
         // calculate the neighbor's new distance based on my closest filled voxel:
         SignedPropDistanceFieldVoxel* neighbor = &getCell(nx, ny, nz);
-        loc[DIM_X] = nx;
-        loc[DIM_Y] = ny;
-        loc[DIM_Z] = nz;
+        loc.x_ = nx;
+        loc.y_ = ny;
+        loc.z_ = nz;
         int new_distance_sq = eucDistSq(vptr->closest_negative_point_, loc);
         if (new_distance_sq > max_distance_sq_)
           continue;
@@ -531,12 +513,8 @@ void SignedPropagationDistanceField::addPointsToField(const std::vector<tf::Vect
         {
           // update the neighboring voxel
           neighbor->negative_distance_square_ = new_distance_sq;
-          neighbor->closest_negative_point_[DIM_X] = vptr->closest_negative_point_[DIM_X];
-          neighbor->closest_negative_point_[DIM_Y] = vptr->closest_negative_point_[DIM_Y];
-          neighbor->closest_negative_point_[DIM_Z] = vptr->closest_negative_point_[DIM_Z];
-          neighbor->location_[DIM_X] = loc[DIM_X];
-          neighbor->location_[DIM_Y] = loc[DIM_Y];
-          neighbor->location_[DIM_Z] = loc[DIM_Z];
+          neighbor->closest_negative_point_ = vptr->closest_negative_point_;
+          neighbor->location_ = loc;
           neighbor->update_direction_ = getDirectionNumber(dx, dy, dz);
 
           // and put it in the queue:
@@ -567,10 +545,7 @@ void SignedPropagationDistanceField::initNeighborhoods()
       for (int dz=-1; dz<=1; ++dz)
       {
         int direction_number = getDirectionNumber(dx, dy, dz);
-        std::vector<int> n_point(3);
-        n_point[DIM_X] = dx;
-        n_point[DIM_Y] = dy;
-        n_point[DIM_Z] = dz;
+        int3 n_point( dx, dy, dz);
         direction_number_to_direction_[direction_number] = n_point;
       }
     }
@@ -604,10 +579,7 @@ void SignedPropagationDistanceField::initNeighborhoods()
                   if (dx*tdx<0 || dy*tdy<0 || dz*tdz <0)
                     continue;
                 }
-                std::vector<int> n_point(3);
-                n_point[DIM_X] = tdx;
-                n_point[DIM_Y] = tdy;
-                n_point[DIM_Z] = tdz;
+                int3 n_point(tdx,tdy,tdz);
                 neighborhoods_[n][direction_number].push_back(n_point);
               }
             }
