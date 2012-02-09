@@ -47,6 +47,17 @@
 namespace distance_field
 {
 
+/// \brief Structure the holds the location of voxels withing the voxel map
+struct int3
+{
+  int3() : x_(0), y_(0), z_(0) {};
+  int3( int x, int y, int z ) : x_(x), y_(y), z_(z) {};
+
+  int x_;
+  int y_;
+  int z_;
+};
+
 /**
  * \brief Structure that holds voxel information for the DistanceField.
  */
@@ -97,9 +108,14 @@ public:
   virtual ~PropagationDistanceField();
 
   /**
+   * \brief Change the set of obstacle points and recalculate the distance field (if there are any changes).
+   */
+  virtual void updatePointsInField(const std::vector<tf::Vector3>& points);
+
+  /**
    * \brief Add (and expand) a set of points to the distance field.
    */
-  virtual void addPointsToField(const std::vector<tf::Vector3> points);
+  virtual void addPointsToField(const std::vector<tf::Vector3>& points);
 
   /**
    * \brief Resets the distance field to the max_distance.
@@ -122,6 +138,7 @@ private:
 
   std::vector<std::vector<int> > direction_number_to_direction_;
 
+  void addNewObstacleVoxels(const std::vector<int3>& points);
   virtual double getDistance(const PropDistanceFieldVoxel& object) const;
   int getDirectionNumber(int dx, int dy, int dz) const;
   void initNeighborhoods();

@@ -98,7 +98,7 @@ public:
    * correspondingly. Use the reset() function if you need to remove all points and start
    * afresh.
    */
-  virtual void addPointsToField(const std::vector<tf::Vector3> points)=0;
+  virtual void addPointsToField(const std::vector<tf::Vector3> &points)=0;
 
   /**
    * \brief Adds the points in a collision map to the distance field.

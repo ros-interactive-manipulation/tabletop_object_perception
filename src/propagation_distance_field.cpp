@@ -67,19 +67,83 @@ int PropagationDistanceField::eucDistSq(int* point1, int* point2)
   return dx*dx + dy*dy + dz*dz;
 }
 
-void PropagationDistanceField::addPointsToField(const std::vector<tf::Vector3> points)
+
+void PropagationDistanceField::updatePointsInField(const std::vector<tf::Vector3>& points)
+{
+  std::vector<int3> points_added;
+  std::vector<int3> points_removed;
+
+  // Compare and figure out what points are new,
+  // and what points are to be deleted
+  points_added.reserve(points.size());
+  for( unsigned int i=0; i<points.size(); i++)
+  {
+    // Convert to voxel coordinates
+    const int3 loc(points[i].x(), points[i].y(), points[i].z());
+    const PropDistanceFieldVoxel& voxel = getCell( loc.x_, loc.y_, loc.z_ );
+    if( voxel.distance_square_ != 0 )
+    {
+      points_added.push_back( loc );
+    }
+  }
+
+  // TODO - calculate the points removed
+
+  if( points_removed.size() > 0 )
+  {
+    reset();
+    //addNewObstacleVoxels(points);	//FIXME
+  }
+  else
+  {
+    addNewObstacleVoxels(points_added);
+    addNewObstacleVoxels( points_added );
+  }
+}
+
+void PropagationDistanceField::addPointsToField(const std::vector<tf::Vector3>& points)
+{
+  std::vector<int3> points_added;
+
+  points_added.reserve(points.size());
+  for( unsigned int i=0; i<points.size(); i++)
+  {
+    // Convert to voxel coordinates
+    int3 voxel_loc;
+    bool valid = worldToGrid(points[i].x(), points[i].y(), points[i].z(),
+                              voxel_loc.x_, voxel_loc.y_, voxel_loc.z_ );
+
+    if( valid )
+    {
+      const PropDistanceFieldVoxel& voxel = getCell( voxel_loc.x_, voxel_loc.y_, voxel_loc.z_ );
+
+      if( voxel.distance_square_ != 0 )
+      {
+        // Add point if it's within the grid and not already an object voxel
+        points_added.push_back( voxel_loc );
+      }
+    }
+  }
+
+  addNewObstacleVoxels( points_added );
+}
+
+void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& voxels)
 {
   // initialize the bucket queue
   bucket_queue_.resize(max_distance_sq_+1);
 
-  bucket_queue_[0].reserve(points.size());
-  // first mark all the points as distance=0, and add them to the queue
+  bucket_queue_[0].reserve(voxels.size());
+  // first mark all the voxels as distance=0, and add them to the queue
   int x, y, z, nx, ny, nz;
   int loc[3];
   int initial_update_direction = getDirectionNumber(0,0,0);
-  for (unsigned int i=0; i<points.size(); ++i)
+  for (unsigned int i=0; i<voxels.size(); ++i)
   {
-    bool valid = worldToGrid(points[i].x(), points[i].y(), points[i].z(), x, y, z);
+    x = voxels[i].x_;
+    y = voxels[i].y_;
+    z = voxels[i].z_;
+    bool valid = isCellValid( x, y, z);
     if (!valid)
       continue;
     PropDistanceFieldVoxel& voxel = getCell(x,y,z);

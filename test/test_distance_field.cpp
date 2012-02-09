@@ -39,14 +39,12 @@
 #include <distance_field/voxel_grid.h>
 #include <distance_field/propagation_distance_field.h>
 #include <ros/ros.h>
-#include <boost/thread.hpp>
-#include <algorithm>
 
 using namespace distance_field;
 
-static const double width = 2.0;
-static const double height = 2.0;
-static const double depth = 1.0;
+static const double width = 0.5;//2.0;
+static const double height = 0.5;//2.0;
+static const double depth = 0.5;//1.0;
 static const double resolution = 0.1;
 static const double origin_x = 0.0;
 static const double origin_y = 0.0;
@@ -93,32 +91,34 @@ TEST(TestPropagationDistanceField, TestAddPoints)
 
   std::vector<tf::Vector3> points;
   points.push_back(tf::Vector3(0,0,0));
-  points.push_back(tf::Vector3(0.1,0.1,0.1));
+  points.push_back(tf::Vector3(0.2,0.2,0.2));
 
-  // Check after adding point(s)
-  // Fairly heavy computation.  Try to keep voxel grid small when doing this test
+  // Add points to the grid
   df.reset();
   df.addPointsToField(points);
 
   // Error checking
-  //print(df, numX, numY, numZ);
+  print(df, numX, numY, numZ);
 
+  // Check after adding point(s)
+  // Fairly heavy computation.  Try to keep voxel grid small when doing this test
   for (int x=0; x<numX; x++) {
     for (int y=0; y<numY; y++) {
       for (int z=0; z<numZ; z++) {
         int min_dist_square = max_dist_sq_in_voxels;
-        for( int i=0; i<points.size(); i++) {
-          int dx = points[i].getX()/resolution - x;
-          int dy = points[i].getY()/resolution - y;
-          int dz = points[i].getZ()/resolution - z;
+        for( unsigned int i=0; i<points.size(); i++) {
+          int dx = points[i].x()/resolution - x;
+          int dy = points[i].y()/resolution - y;
+          int dz = points[i].z()/resolution - z;
           int dist_square = dist_sq(dx,dy,dz);
           min_dist_square = std::min(dist_square, min_dist_square);
         }
-
         ASSERT_EQ(df.getCell(x,y,z).distance_square_, min_dist_square);
       }
     }
   }
+
+  // TODO - test gradient and closest point location
 
 }
 
