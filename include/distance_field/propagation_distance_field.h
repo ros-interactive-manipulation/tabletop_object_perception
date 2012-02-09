@@ -43,21 +43,14 @@
 #include <vector>
 #include <list>
 #include <ros/ros.h>
+#include <eigen3/Eigen/Core>
 
 namespace distance_field
 {
 
+// TODO: Move to voxel_grid.h
 /// \brief Structure the holds the location of voxels withing the voxel map
-struct int3
-{
-  int3() : x_(0), y_(0), z_(0) {};
-  int3( int x, int y, int z ) : x_(x), y_(y), z_(z) {};
-  int3( int value ) : x_(value), y_(value), z_(value) {};
-
-  int x_;
-  int y_;
-  int z_;
-};
+typedef Eigen::Vector3i int3;
 
 /**
  * \brief Structure that holds voxel information for the DistanceField.
@@ -151,9 +144,9 @@ private:
 inline PropDistanceFieldVoxel::PropDistanceFieldVoxel(int distance_sq):
   distance_square_(distance_sq)
 {
-  closest_point_.x_ = PropDistanceFieldVoxel::UNINITIALIZED;
-  closest_point_.y_ = PropDistanceFieldVoxel::UNINITIALIZED;
-  closest_point_.z_ = PropDistanceFieldVoxel::UNINITIALIZED;
+  closest_point_.x() = PropDistanceFieldVoxel::UNINITIALIZED;
+  closest_point_.y() = PropDistanceFieldVoxel::UNINITIALIZED;
+  closest_point_.z() = PropDistanceFieldVoxel::UNINITIALIZED;
 }
 
 inline PropDistanceFieldVoxel::PropDistanceFieldVoxel()

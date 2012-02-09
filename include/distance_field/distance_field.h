@@ -50,23 +50,26 @@
 
 namespace distance_field
 {
-  enum PlaneVisualizationType
-  {
-    XYPlane,
-    XZPlane,
-    YZPlane
-  };
+
+/// \brief The plane to visualize
+enum PlaneVisualizationType
+{
+ XYPlane,
+ XZPlane,
+ YZPlane
+};
+
 /**
- * \brief A VoxelGrid that can convert a set of obstacle points into a distance field.
- *
- * It computes the distance transform of the input points, and stores the distance to
- * the closest obstacle in each voxel. Also available is the location of the closest point,
- * and the gradient of the field at a point. Expansion of obstacles is performed upto a given
- * radius.
- *
- * This is an abstract base class, current implementations include PropagationDistanceField
- * and PFDistanceField.
- */
+* \brief A VoxelGrid that can convert a set of obstacle points into a distance field.
+*
+* It computes the distance transform of the input points, and stores the distance to
+* the closest obstacle in each voxel. Also available is the location of the closest point,
+* and the gradient of the field at a point. Expansion of obstacles is performed upto a given
+* radius.
+*
+* This is an abstract base class, current implementations include PropagationDistanceField
+* and PFDistanceField.
+*/
 template <typename T>
 class DistanceField: public VoxelGrid<T>
 {
@@ -88,7 +91,6 @@ public:
       double origin_x, double origin_y, double origin_z, T default_object);
 
   virtual ~DistanceField();
-
 
 
   /**
