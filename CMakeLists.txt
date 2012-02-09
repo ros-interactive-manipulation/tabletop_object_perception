@@ -36,9 +36,9 @@ rosbuild_add_library(distance_field
 	src/propagation_distance_field.cpp
 )
 
-rosbuild_add_gtest(test/test_distance_field
-	test/test_voxel_grid.cpp
-	test/test_distance_field.cpp
-	test/tests_main.cpp
-)
+rosbuild_add_gtest(test/test_voxel_grid test/test_voxel_grid.cpp)
+target_link_libraries(test/test_voxel_grid distance_field)
+
+rosbuild_add_gtest(test/test_distance_field test/test_distance_field.cpp)
 target_link_libraries(test/test_distance_field distance_field)
+
