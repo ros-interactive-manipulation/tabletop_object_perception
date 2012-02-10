@@ -44,6 +44,7 @@
 #include <list>
 #include <ros/ros.h>
 #include <eigen3/Eigen/Core>
+#include <set>
 
 namespace distance_field
 {
@@ -51,6 +52,22 @@ namespace distance_field
 // TODO: Move to voxel_grid.h
 /// \brief Structure the holds the location of voxels withing the voxel map
 typedef Eigen::Vector3i int3;
+
+// less-than Comparison
+struct compareInt3
+{
+  bool operator()(int3 loc_1, int3 loc_2) const
+  {
+    if( loc_1.z() != loc_2.z() )
+      return ( loc_1.z() < loc_2.z() );
+    else if( loc_1.y() != loc_2.y() )
+      return ( loc_1.y() < loc_2.y() );
+    else if( loc_1.z() != loc_2.z() )
+      return ( loc_1.z() < loc_2.z() );
+    return false;
+  }
+};
+
 
 /**
  * \brief Structure that holds voxel information for the DistanceField.
@@ -103,8 +120,10 @@ public:
 
   /**
    * \brief Change the set of obstacle points and recalculate the distance field (if there are any changes).
+   * \param iterative Calculate the changes in the object voxels, and propogate the changes outward.
+   *        Otherwise, clear the distance map and recalculate the entire voxel map.
    */
-  virtual void updatePointsInField(const std::vector<tf::Vector3>& points);
+  virtual void updatePointsInField(const std::vector<tf::Vector3>& points, const bool iterative=true);
 
   /**
    * \brief Add (and expand) a set of points to the distance field.
@@ -120,6 +139,11 @@ public:
   virtual void reset();
 
 private:
+  /// \brief The set of all the obstacle voxels
+  typedef std::set<int3, compareInt3> VoxelSet;
+  VoxelSet object_voxel_locations_;
+
+  /// \brief Structure used to hold propogation frontier
   std::vector<std::vector<PropDistanceFieldVoxel*> > bucket_queue_;
   double max_distance_;
   int max_distance_sq_;
@@ -135,8 +159,8 @@ private:
 
   std::vector<int3 > direction_number_to_direction_;
 
-  void addNewObstacleVoxels(const std::vector<int3>& points);
-  void removeObstacleVoxels(const std::vector<int3>& points);
+  void addNewObstacleVoxels(const VoxelSet& points);
+  void removeObstacleVoxels(const VoxelSet& points);
   // starting with the voxels on the queue, propogate values to neighbors up to a certain distance.
   void propogate();
   virtual double getDistance(const PropDistanceFieldVoxel& object) const;

@@ -119,13 +119,12 @@ TEST(TestPropagationDistanceField, TestAddPoints)
   // TODO - check initial values
   //EXPECT_EQ( df.getCell(0,0,0).distance_square_, max_dist_sq_in_voxels );
 
+  // Add points to the grid
   std::vector<tf::Vector3> points;
   points.push_back(point1);
   points.push_back(point2);
-
-  // Add points to the grid
   df.reset();
-  df.addPointsToField(points);
+  df.updatePointsInField(points);
 
   // Error checking
   //print(df, numX, numY, numZ);
@@ -133,16 +132,18 @@ TEST(TestPropagationDistanceField, TestAddPoints)
   // Check correctness
   check_distance_field( df, points, numX, numY, numZ);
 
+	// Update - iterative
   points.clear();
   points.push_back(point1);
-  df.removePointsFromField(points);
+  df.updatePointsInField(points,true);
+  //print(df, numX, numY, numZ);
+  check_distance_field( df, points, numX, numY, numZ);
 
-  // Error checking
-  print(df, numX, numY, numZ);
-
-  // Check correctness
+	// Update - not iterative
   points.clear();
   points.push_back(point2);
+  df.updatePointsInField(points,false);
+  print(df, numX, numY, numZ);
   check_distance_field( df, points, numX, numY, numZ);
 
   // TODO - test gradient and closest point location

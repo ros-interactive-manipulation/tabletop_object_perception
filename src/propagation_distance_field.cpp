@@ -69,43 +69,77 @@ int PropagationDistanceField::eucDistSq(int3 point1, int3 point2)
   return dx*dx + dy*dy + dz*dz;
 }
 
-void PropagationDistanceField::updatePointsInField(const std::vector<tf::Vector3>& points)
+void PropagationDistanceField::updatePointsInField(const std::vector<tf::Vector3>& points, bool iterative)
 {
-  std::vector<int3> points_added;
-  std::vector<int3> points_removed;
-
-  // Compare and figure out what points are new,
-  // and what points are to be deleted
-  points_added.reserve(points.size());
-  for( unsigned int i=0; i<points.size(); i++)
+  if( iterative )
   {
-    // Convert to voxel coordinates
-    const int3 loc(points[i].x(), points[i].y(), points[i].z());
-    const PropDistanceFieldVoxel& voxel = getCell( loc.x(), loc.y(), loc.z() );
-    if( voxel.distance_square_ != 0 )
+    VoxelSet points_added;
+    VoxelSet points_removed(object_voxel_locations_);
+
+    // Compare and figure out what points are new,
+    // and what points are to be deleted
+    for( unsigned int i=0; i<points.size(); i++)
     {
-      points_added.push_back( loc );
+      // Convert to voxel coordinates
+      int3 voxel_loc;
+      bool valid = worldToGrid(points[i].x(), points[i].y(), points[i].z(),
+                                voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
+      if( valid )
+      {
+        if( iterative )
+        {
+          bool already_obstacle_voxel = ( object_voxel_locations_.find(voxel_loc) != object_voxel_locations_.end() );
+          if( !already_obstacle_voxel )
+          {
+            // Not already in set of existing obstacles, so add to voxel list
+            object_voxel_locations_.insert(voxel_loc);
+
+            // Add point to the set or expansion
+            points_added.insert(voxel_loc);
+          }
+          else
+          {
+            // Already an existing obstacle, so take off removal list
+            points_removed.erase(voxel_loc);
+          }
+        }
+        else
+        {
+          object_voxel_locations_.insert(voxel_loc);
+          points_added.insert(voxel_loc);
+        }
+      }
     }
+
+   removeObstacleVoxels( points_removed );
+   addNewObstacleVoxels( points_added );
   }
 
-  // TODO - calculate the points removed
-  if( points_removed.size() > 0 )
+  else	// !iterative
   {
+    VoxelSet points_added;
     reset();
-    //addNewObstacleVoxels(points);	//FIXME
-  }
-  else
-  {
-    addNewObstacleVoxels(points_added);
+
+    for( unsigned int i=0; i<points.size(); i++)
+    {
+      // Convert to voxel coordinates
+      int3 voxel_loc;
+      bool valid = worldToGrid(points[i].x(), points[i].y(), points[i].z(),
+                                voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
+      if( valid )
+      {
+        object_voxel_locations_.insert(voxel_loc);
+        points_added.insert(voxel_loc);
+      }
+    }
     addNewObstacleVoxels( points_added );
   }
 }
 
 void PropagationDistanceField::addPointsToField(const std::vector<tf::Vector3>& points)
 {
-  std::vector<int3> voxel_locs;
+  VoxelSet voxel_locs;
 
-  voxel_locs.reserve(points.size());
   for( unsigned int i=0; i<points.size(); i++)
   {
     // Convert to voxel coordinates
@@ -115,12 +149,14 @@ void PropagationDistanceField::addPointsToField(const std::vector<tf::Vector3>& 
 
     if( valid )
     {
-      const PropDistanceFieldVoxel& voxel = getCell( voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
-
-      if( voxel.distance_square_ != 0 )
+      bool already_obstacle_voxel = ( object_voxel_locations_.find(voxel_loc) != object_voxel_locations_.end() );
+      if( !already_obstacle_voxel )
       {
-        // Add point if it's within the grid and not already an object voxel
-        voxel_locs.push_back(voxel_loc);
+        // Not already in set of existing obstacles, so add to voxel list
+        object_voxel_locations_.insert(voxel_loc);
+
+        // Add point to the queue for expansion
+        voxel_locs.insert(voxel_loc);
       }
     }
   }
@@ -131,9 +167,8 @@ void PropagationDistanceField::addPointsToField(const std::vector<tf::Vector3>& 
 // TODO-- remove.  This is for testing purposes.
 void PropagationDistanceField::removePointsFromField(const std::vector<tf::Vector3>& points)
 {
-  std::vector<int3> voxel_locs;
+  VoxelSet voxel_locs;
 
-  voxel_locs.reserve(points.size());
   for( unsigned int i=0; i<points.size(); i++)
   {
     // Convert to voxel coordinates
@@ -143,28 +178,31 @@ void PropagationDistanceField::removePointsFromField(const std::vector<tf::Vecto
 
     if( valid )
     {
-      //const PropDistanceFieldVoxel& voxel = getCell( voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
+      std::set<int3>::iterator it = object_voxel_locations_.find(voxel_loc);
+      bool already_obstacle_voxel = ( it != object_voxel_locations_.end() );
+      if( already_obstacle_voxel )
+      {
+        // In set of existing obstacles, so remove
+        object_voxel_locations_.erase(it);
 
-      //if( voxel.distance_square_ != 0 )
-      //{
-        // Add point if it's within the grid and not already an object voxel
-        voxel_locs.push_back( voxel_loc );
-std::cout << " removing " << voxel_loc.x() << "," << voxel_loc.y() << "," << voxel_loc.z() << " " << std::endl;
-      //}
+        voxel_locs.insert( voxel_loc );
+      }
     }
   }
 
   removeObstacleVoxels( voxel_locs );
 }
 
-void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& locations)
+void PropagationDistanceField::addNewObstacleVoxels(const VoxelSet& locations)
 {
   int x, y, z;
   int initial_update_direction = getDirectionNumber(0,0,0);
   bucket_queue_[0].reserve(locations.size());
-  for (unsigned int i=0; i<locations.size(); ++i)
+
+  VoxelSet::const_iterator it = locations.begin();
+  for( it=locations.begin(); it!=locations.end(); ++it)
   {
-    int3 loc = locations[i];
+    int3 loc = *it;
     x = loc.x();
     y = loc.y();
     z = loc.z();
@@ -182,7 +220,7 @@ void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& loc
   propogate();
 }
 
-void PropagationDistanceField::removeObstacleVoxels(const std::vector<int3>& locations )
+void PropagationDistanceField::removeObstacleVoxels(const VoxelSet& locations )
 {
   std::vector<int3> stack;
   int initial_update_direction = getDirectionNumber(0,0,0);
@@ -191,9 +229,10 @@ void PropagationDistanceField::removeObstacleVoxels(const std::vector<int3>& loc
   bucket_queue_[0].reserve(locations.size());
 
   // First reset the obstacle voxels,
-  for (unsigned int i=0; i<locations.size(); ++i)
+  VoxelSet::const_iterator it = locations.begin();
+  for( it=locations.begin(); it!=locations.end(); ++it)
   {
-    int3 loc = locations[i];
+    int3 loc = *it;
     bool valid = isCellValid( loc.x(), loc.y(), loc.z());
     if (!valid)
       continue;
