@@ -164,35 +164,6 @@ void PropagationDistanceField::addPointsToField(const std::vector<tf::Vector3>& 
   addNewObstacleVoxels( voxel_locs );
 }
 
-// TODO-- remove.  This is for testing purposes.
-void PropagationDistanceField::removePointsFromField(const std::vector<tf::Vector3>& points)
-{
-  VoxelSet voxel_locs;
-
-  for( unsigned int i=0; i<points.size(); i++)
-  {
-    // Convert to voxel coordinates
-    int3 voxel_loc;
-    bool valid = worldToGrid(points[i].x(), points[i].y(), points[i].z(),
-                              voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
-
-    if( valid )
-    {
-      std::set<int3>::iterator it = object_voxel_locations_.find(voxel_loc);
-      bool already_obstacle_voxel = ( it != object_voxel_locations_.end() );
-      if( already_obstacle_voxel )
-      {
-        // In set of existing obstacles, so remove
-        object_voxel_locations_.erase(it);
-
-        voxel_locs.insert( voxel_loc );
-      }
-    }
-  }
-
-  removeObstacleVoxels( voxel_locs );
-}
-
 void PropagationDistanceField::addNewObstacleVoxels(const VoxelSet& locations)
 {
   int x, y, z;

@@ -130,9 +130,6 @@ public:
    */
   virtual void addPointsToField(const std::vector<tf::Vector3>& points);
 
-  // TODO -- either remove or comment
-  virtual void removePointsFromField(const std::vector<tf::Vector3>& points);
-
   /**
    * \brief Resets the distance field to the max_distance.
    */
