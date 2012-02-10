@@ -54,6 +54,10 @@ static const double max_dist = 0.3;
 static const int max_dist_in_voxels = max_dist/resolution+0.5;
 static const int max_dist_sq_in_voxels = max_dist_in_voxels*max_dist_in_voxels;
 
+static const tf::Vector3 point1(0.0,0.0,0.0);
+static const tf::Vector3 point2(0.2,0.2,0.2);
+
+
 int dist_sq(int x, int y, int z)
 {
   return x*x + y*y +z*z;
@@ -72,34 +76,9 @@ void print( PropagationDistanceField& pdf, int numX, int numY, int numZ)
   }
 }
 
-TEST(TestPropagationDistanceField, TestAddPoints)
+
+void check_distance_field(const PropagationDistanceField & df, const std::vector<tf::Vector3>& points, int numX, int numY, int numZ)
 {
-
-  PropagationDistanceField df( width, height, depth, resolution, origin_x, origin_y, origin_z, max_dist);
-
-  // Check size
-  int numX = df.getNumCells(PropagationDistanceField::DIM_X);
-  int numY = df.getNumCells(PropagationDistanceField::DIM_Y);
-  int numZ = df.getNumCells(PropagationDistanceField::DIM_Z);
-
-  EXPECT_EQ( numX, (int)(width/resolution+0.5) );
-  EXPECT_EQ( numY, (int)(height/resolution+0.5) );
-  EXPECT_EQ( numZ, (int)(depth/resolution+0.5) );
-
-  // TODO - check initial values
-  //EXPECT_EQ( df.getCell(0,0,0).distance_square_, max_dist_sq_in_voxels );
-
-  std::vector<tf::Vector3> points;
-  points.push_back(tf::Vector3(0,0,0));
-  points.push_back(tf::Vector3(0.2,0.2,0.2));
-
-  // Add points to the grid
-  df.reset();
-  df.addPointsToField(points);
-
-  // Error checking
-  print(df, numX, numY, numZ);
-
   // Check after adding point(s)
   // Fairly heavy computation.  Try to keep voxel grid small when doing this test
   for (int x=0; x<numX; x++) {
@@ -117,6 +96,54 @@ TEST(TestPropagationDistanceField, TestAddPoints)
       }
     }
   }
+}
+
+
+TEST(TestPropagationDistanceField, TestAddPoints)
+{
+
+  PropagationDistanceField df( width, height, depth, resolution, origin_x, origin_y, origin_z, max_dist);
+
+  // Check size
+  int numX = df.getNumCells(PropagationDistanceField::DIM_X);
+  int numY = df.getNumCells(PropagationDistanceField::DIM_Y);
+  int numZ = df.getNumCells(PropagationDistanceField::DIM_Z);
+
+  EXPECT_EQ( numX, (int)(width/resolution+0.5) );
+  EXPECT_EQ( numY, (int)(height/resolution+0.5) );
+  EXPECT_EQ( numZ, (int)(depth/resolution+0.5) );
+
+  // Error checking
+  //print(df, numX, numY, numZ);
+
+  // TODO - check initial values
+  //EXPECT_EQ( df.getCell(0,0,0).distance_square_, max_dist_sq_in_voxels );
+
+  std::vector<tf::Vector3> points;
+  points.push_back(point1);
+  points.push_back(point2);
+
+  // Add points to the grid
+  df.reset();
+  df.addPointsToField(points);
+
+  // Error checking
+  //print(df, numX, numY, numZ);
+
+  // Check correctness
+  check_distance_field( df, points, numX, numY, numZ);
+
+  points.clear();
+  points.push_back(point1);
+  df.removePointsFromField(points);
+
+  // Error checking
+  print(df, numX, numY, numZ);
+
+  // Check correctness
+  points.clear();
+  points.push_back(point2);
+  check_distance_field( df, points, numX, numY, numZ);
 
   // TODO - test gradient and closest point location
 

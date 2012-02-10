@@ -32,7 +32,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/** \author Mrinal Kalakrishnan */
+/** \author Mrinal Kalakrishnan, Ken Anderson */
 
 #include <distance_field/propagation_distance_field.h>
 #include <visualization_msgs/Marker.h>
@@ -53,6 +53,8 @@ PropagationDistanceField::PropagationDistanceField(double size_x, double size_y,
   max_distance_sq_ = (max_dist_int*max_dist_int);
   initNeighborhoods();
 
+  bucket_queue_.resize(max_distance_sq_+1);
+
   // create a sqrt table:
   sqrt_table_.resize(max_distance_sq_+1);
   for (int i=0; i<=max_distance_sq_; ++i)
@@ -66,7 +68,6 @@ int PropagationDistanceField::eucDistSq(int3 point1, int3 point2)
   int dz = point1.z() - point2.z();
   return dx*dx + dy*dy + dz*dz;
 }
-
 
 void PropagationDistanceField::updatePointsInField(const std::vector<tf::Vector3>& points)
 {
@@ -88,7 +89,6 @@ void PropagationDistanceField::updatePointsInField(const std::vector<tf::Vector3
   }
 
   // TODO - calculate the points removed
-
   if( points_removed.size() > 0 )
   {
     reset();
@@ -103,9 +103,9 @@ void PropagationDistanceField::updatePointsInField(const std::vector<tf::Vector3
 
 void PropagationDistanceField::addPointsToField(const std::vector<tf::Vector3>& points)
 {
-  std::vector<int3> points_added;
+  std::vector<int3> voxel_locs;
 
-  points_added.reserve(points.size());
+  voxel_locs.reserve(points.size());
   for( unsigned int i=0; i<points.size(); i++)
   {
     // Convert to voxel coordinates
@@ -120,39 +120,134 @@ void PropagationDistanceField::addPointsToField(const std::vector<tf::Vector3>& 
       if( voxel.distance_square_ != 0 )
       {
         // Add point if it's within the grid and not already an object voxel
-        points_added.push_back( voxel_loc );
+        voxel_locs.push_back(voxel_loc);
       }
     }
   }
 
-  addNewObstacleVoxels( points_added );
+  addNewObstacleVoxels( voxel_locs );
 }
 
-void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& voxels)
+// TODO-- remove.  This is for testing purposes.
+void PropagationDistanceField::removePointsFromField(const std::vector<tf::Vector3>& points)
 {
-  // initialize the bucket queue
-  bucket_queue_.resize(max_distance_sq_+1);
+  std::vector<int3> voxel_locs;
 
-  bucket_queue_[0].reserve(voxels.size());
-  // first mark all the voxels as distance=0, and add them to the queue
-  int x, y, z, nx, ny, nz;
-  int3 loc;
-  int initial_update_direction = getDirectionNumber(0,0,0);
-  for (unsigned int i=0; i<voxels.size(); ++i)
+  voxel_locs.reserve(points.size());
+  for( unsigned int i=0; i<points.size(); i++)
   {
-    x = voxels[i].x();
-    y = voxels[i].y();
-    z = voxels[i].z();
+    // Convert to voxel coordinates
+    int3 voxel_loc;
+    bool valid = worldToGrid(points[i].x(), points[i].y(), points[i].z(),
+                              voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
+
+    if( valid )
+    {
+      //const PropDistanceFieldVoxel& voxel = getCell( voxel_loc.x(), voxel_loc.y(), voxel_loc.z() );
+
+      //if( voxel.distance_square_ != 0 )
+      //{
+        // Add point if it's within the grid and not already an object voxel
+        voxel_locs.push_back( voxel_loc );
+std::cout << " removing " << voxel_loc.x() << "," << voxel_loc.y() << "," << voxel_loc.z() << " " << std::endl;
+      //}
+    }
+  }
+
+  removeObstacleVoxels( voxel_locs );
+}
+
+void PropagationDistanceField::addNewObstacleVoxels(const std::vector<int3>& locations)
+{
+  int x, y, z;
+  int initial_update_direction = getDirectionNumber(0,0,0);
+  bucket_queue_[0].reserve(locations.size());
+  for (unsigned int i=0; i<locations.size(); ++i)
+  {
+    int3 loc = locations[i];
+    x = loc.x();
+    y = loc.y();
+    z = loc.z();
     bool valid = isCellValid( x, y, z);
     if (!valid)
       continue;
     PropDistanceFieldVoxel& voxel = getCell(x,y,z);
     voxel.distance_square_ = 0;
-    voxel.closest_point_ = voxels[i];
-    voxel.location_ = voxels[i];
+    voxel.closest_point_ = loc;
+    voxel.location_ = loc;
     voxel.update_direction_ = initial_update_direction;
     bucket_queue_[0].push_back(&voxel);
   }
+
+  propogate();
+}
+
+void PropagationDistanceField::removeObstacleVoxels(const std::vector<int3>& locations )
+{
+  std::vector<int3> stack;
+  int initial_update_direction = getDirectionNumber(0,0,0);
+
+  stack.reserve( num_cells_[DIM_X] * num_cells_[DIM_Y] * num_cells_[DIM_Z] );
+  bucket_queue_[0].reserve(locations.size());
+
+  // First reset the obstacle voxels,
+  for (unsigned int i=0; i<locations.size(); ++i)
+  {
+    int3 loc = locations[i];
+    bool valid = isCellValid( loc.x(), loc.y(), loc.z());
+    if (!valid)
+      continue;
+    PropDistanceFieldVoxel& voxel = getCell(loc.x(), loc.y(), loc.z());
+    voxel.distance_square_ = max_distance_sq_;
+    voxel.closest_point_ = loc;
+    voxel.location_ = loc;
+    voxel.update_direction_ = initial_update_direction;
+    stack.push_back(loc);
+  }
+
+  // Reset all neighbors who's closest point is now gone.
+  while(stack.size() > 0)
+  {
+    int3 loc = stack.back();
+    stack.pop_back();
+
+    for( int neighbor=0; neighbor<27; neighbor++ )
+    {
+      int3 diff = getLocationDifference(neighbor);
+      int3 nloc( loc.x() + diff.x(), loc.y() + diff.y(), loc.z() + diff.z() );
+
+      if( isCellValid(nloc.x(), nloc.y(), nloc.z()) )
+      {
+        PropDistanceFieldVoxel& nvoxel = getCell(nloc.x(), nloc.y(), nloc.z());
+        int3& close_point = nvoxel.closest_point_;
+        PropDistanceFieldVoxel& closest_point_voxel = getCell( close_point.x(), close_point.y(), close_point.z() );
+
+        if( closest_point_voxel.distance_square_ != 0 )
+        {	// closest point no longer exists
+          if( nvoxel.distance_square_!=max_distance_sq_)
+          {
+            nvoxel.distance_square_ = max_distance_sq_;
+            nvoxel.closest_point_ = nloc;
+            nvoxel.location_ = nloc;
+            nvoxel.update_direction_ = initial_update_direction;
+            stack.push_back(nloc);
+          }
+        }
+        else
+        {	// add to queue so we can propogate the values
+          bucket_queue_[0].push_back(&nvoxel);
+        }
+      }
+    }
+  }
+
+  propogate();
+}
+
+void PropagationDistanceField::propogate()
+{
+  int x, y, z, nx, ny, nz;
+  int3 loc;
 
   // now process the queue:
   for (unsigned int i=0; i<bucket_queue_.size(); ++i)
@@ -287,6 +382,11 @@ void PropagationDistanceField::initNeighborhoods()
 int PropagationDistanceField::getDirectionNumber(int dx, int dy, int dz) const
 {
   return (dx+1)*9 + (dy+1)*3 + dz+1;
+}
+
+int3 PropagationDistanceField::getLocationDifference(int directionNumber) const
+{
+  return direction_number_to_direction_[ directionNumber ];
 }
 
 SignedPropagationDistanceField::~SignedPropagationDistanceField()

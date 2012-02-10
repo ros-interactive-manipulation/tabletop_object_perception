@@ -32,7 +32,7 @@
  *  POSSIBILITY OF SUCH DAMAGE.
  *********************************************************************/
 
-/** \author Mrinal Kalakrishnan */
+/** \author Mrinal Kalakrishnan, Ken Anderson */
 
 #ifndef DF_PROPAGATION_DISTANCE_FIELD_H_
 #define DF_PROPAGATION_DISTANCE_FIELD_H_
@@ -111,6 +111,9 @@ public:
    */
   virtual void addPointsToField(const std::vector<tf::Vector3>& points);
 
+  // TODO -- either remove or comment
+  virtual void removePointsFromField(const std::vector<tf::Vector3>& points);
+
   /**
    * \brief Resets the distance field to the max_distance.
    */
@@ -133,8 +136,12 @@ private:
   std::vector<int3 > direction_number_to_direction_;
 
   void addNewObstacleVoxels(const std::vector<int3>& points);
+  void removeObstacleVoxels(const std::vector<int3>& points);
+  // starting with the voxels on the queue, propogate values to neighbors up to a certain distance.
+  void propogate();
   virtual double getDistance(const PropDistanceFieldVoxel& object) const;
   int getDirectionNumber(int dx, int dy, int dz) const;
+  int3 getLocationDifference(int directionNumber) const;	// TODO- separate out neighborhoods
   void initNeighborhoods();
   static int eucDistSq(int3 point1, int3 point2);
 };
