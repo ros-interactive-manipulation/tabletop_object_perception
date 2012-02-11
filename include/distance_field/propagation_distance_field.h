@@ -195,7 +195,7 @@ class SignedPropagationDistanceField : public DistanceField<SignedPropDistanceFi
                                    double origin_y, double origin_z, double max_distance);
     virtual ~SignedPropagationDistanceField();
 
-    virtual void addPointsToField(const std::vector<tf::Vector3> points);
+    virtual void addPointsToField(const std::vector<tf::Vector3> &points);
 
     virtual void reset();
 

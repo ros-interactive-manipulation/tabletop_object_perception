@@ -134,8 +134,9 @@ public:
    * as visualization markers.
    * \param marker the marker to be published
    */
-  void getIsoSurfaceMarkers(double min_radius, double max_radius, const tf::Transform& cur,
+  void getIsoSurfaceMarkers(double min_radius, double max_radius,
                             const std::string & frame_id, const ros::Time stamp,
+                            const tf::Transform& cur,
                             visualization_msgs::Marker& marker );
 
   /**
@@ -222,8 +223,9 @@ double DistanceField<T>::getDistanceFromCell(int x, int y, int z) const
 }
 
 template <typename T>
-void DistanceField<T>::getIsoSurfaceMarkers(double min_radius, double max_radius, const tf::Transform& cur,
+void DistanceField<T>::getIsoSurfaceMarkers(double min_radius, double max_radius,
                                             const std::string & frame_id, const ros::Time stamp,
+                                            const tf::Transform& cur,
                                             visualization_msgs::Marker& inf_marker )
 {
   inf_marker.points.clear();
