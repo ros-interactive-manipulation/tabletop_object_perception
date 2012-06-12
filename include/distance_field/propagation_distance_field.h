@@ -62,8 +62,8 @@ struct compareInt3
       return ( loc_1.z() < loc_2.z() );
     else if( loc_1.y() != loc_2.y() )
       return ( loc_1.y() < loc_2.y() );
-    else if( loc_1.z() != loc_2.z() )
-      return ( loc_1.z() < loc_2.z() );
+    else if( loc_1.x() != loc_2.x() )
+      return ( loc_1.x() < loc_2.x() );
     return false;
   }
 };
@@ -135,6 +135,15 @@ public:
    */
   virtual void reset();
 
+  /**
+   * \brief Get visualization markers for the set of occupied cells
+   * \param marker the marker to be published
+   */
+  void getOccupiedVoxelMarkers(const std::string & frame_id, 
+			       const ros::Time stamp,
+			       const tf::Transform& cur,
+			       visualization_msgs::Marker& marker);
+
 private:
   /// \brief The set of all the obstacle voxels
   typedef std::set<int3, compareInt3> VoxelSet;
@@ -165,6 +174,7 @@ private:
   int3 getLocationDifference(int directionNumber) const;	// TODO- separate out neighborhoods
   void initNeighborhoods();
   static int eucDistSq(int3 point1, int3 point2);
+
 };
 
 ////////////////////////// inline functions follow ////////////////////////////////////////

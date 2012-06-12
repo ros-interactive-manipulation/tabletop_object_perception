@@ -326,6 +326,48 @@ void PropagationDistanceField::propogate()
 
 }
 
+void PropagationDistanceField::getOccupiedVoxelMarkers(const std::string & frame_id, 
+						       const ros::Time stamp,
+						       const tf::Transform& cur,
+						       visualization_msgs::Marker& inf_marker)
+{
+  inf_marker.points.clear();
+  inf_marker.header.frame_id = frame_id;
+  inf_marker.header.stamp = stamp;
+  inf_marker.ns = "distance_field_occupied_cells";
+  inf_marker.id = 1;
+  inf_marker.type = visualization_msgs::Marker::CUBE_LIST;
+  inf_marker.action = 0;
+  inf_marker.scale.x = resolution_[DIM_X];
+  inf_marker.scale.y = resolution_[DIM_Y];
+  inf_marker.scale.z = resolution_[DIM_Z];
+  inf_marker.color.r = 0.0;
+  inf_marker.color.g = 0.0;
+  inf_marker.color.b = 1.0;
+  inf_marker.color.a = 0.1;
+  //inf_marker.lifetime = ros::Duration(30.0);
+
+  inf_marker.points.reserve(100000);
+
+  VoxelSet::iterator iter;
+  for(iter = object_voxel_locations_.begin(); iter != object_voxel_locations_.end(); iter++)
+  {
+    int last = inf_marker.points.size();
+    inf_marker.points.resize(last + 1);
+    double nx, ny, nz;
+    int x = (*iter).x();
+    int y = (*iter).y();
+    int z = (*iter).z();
+    this->gridToWorld(x,y,z,nx, ny, nz);
+    tf::Vector3 vec(nx,ny,nz);
+    vec = cur*vec;
+    inf_marker.points[last].x = vec.x();
+    inf_marker.points[last].y = vec.y();
+    inf_marker.points[last].z = vec.z();    
+  }
+}
+
+
 void PropagationDistanceField::reset()
 {
   VoxelGrid<PropDistanceFieldVoxel>::reset(PropDistanceFieldVoxel(max_distance_sq_));

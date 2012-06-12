@@ -139,6 +139,7 @@ public:
                             const tf::Transform& cur,
                             visualization_msgs::Marker& marker );
 
+
   /**
    * \brief Get an array of markers that can be published to rviz
    *
