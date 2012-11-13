@@ -38,6 +38,7 @@
 #define DF_VOXEL_GRID_H_
 
 #include <algorithm>
+#include <math.h>
 
 namespace distance_field
 {
@@ -277,7 +278,11 @@ inline void VoxelGrid<T>::setCell(int x, int y, int z, T& obj)
 template<typename T>
 inline int VoxelGrid<T>::getCellFromLocation(Dimension dim, double loc) const
 {
-  return int(round((loc-origin_[dim])/resolution_[dim]));
+  double res = (loc-origin_[dim])/resolution_[dim];
+  if (res > 0)
+    return floor(res + 0.5);
+  else
+    return ceil(res - 0.5);
 }
 
 template<typename T>
