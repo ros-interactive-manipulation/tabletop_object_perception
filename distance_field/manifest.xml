@@ -13,10 +13,10 @@ closest obstacle. The VoxelGrid class can also be used as a generic, templatized
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/distance_field</url>
 
+  <rosdep name="bullet"/>
+
   <depend package="roscpp"/>
   <depend package="visualization_msgs" />
-  <depend package="arm_navigation_msgs" />
-  <depend package="bullet"/>
 
   <export>
     <cpp cflags="-I${prefix}/include" lflags="-Wl,-rpath,${prefix}/lib -L${prefix}/lib -ldistance_field"/>

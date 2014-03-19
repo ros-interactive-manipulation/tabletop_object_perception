@@ -46,8 +46,6 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 
-#include <arm_navigation_msgs/CollisionMap.h>
-
 namespace distance_field
 {
 
@@ -101,11 +99,6 @@ public:
    * afresh.
    */
   virtual void addPointsToField(const std::vector<tf::Vector3> &points)=0;
-
-  /**
-   * \brief Adds the points in a collision map to the distance field.
-   */
-  void addCollisionMapToField(const arm_navigation_msgs::CollisionMap &collision_map);
 
   /**
    * \brief Resets the distance field to the max_distance.
@@ -338,23 +331,6 @@ void DistanceField<T>::getGradientMarkers( double min_radius, double max_radius,
       }
     }
   }
-}
-
-template <typename T>
-void DistanceField<T>::addCollisionMapToField(const arm_navigation_msgs::CollisionMap &collision_map)
-{
-  size_t num_boxes = collision_map.boxes.size();
-  std::vector<tf::Vector3> points;
-  points.reserve(num_boxes);
-  for (size_t i=0; i<num_boxes; ++i)
-  {
-    points.push_back(tf::Vector3(
-        collision_map.boxes[i].center.x,
-        collision_map.boxes[i].center.y,
-        collision_map.boxes[i].center.z
-        ));
-  }
-  addPointsToField(points);
 }
 
 template <typename T>
