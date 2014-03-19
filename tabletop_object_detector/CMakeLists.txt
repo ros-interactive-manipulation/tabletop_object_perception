@@ -53,7 +53,4 @@ rosbuild_add_executable(ping_tabletop_node src/ping_tabletop_node.cpp)
 
 rosbuild_add_executable(publish_database_object src/publish_database_object.cpp)
 
-rosbuild_add_executable(segment_object_in_hand src/segment_object_in_hand.cpp)
-
-rosbuild_add_executable(ping_segment_object_in_hand src/ping_segment_object_in_hand.cpp)
 
