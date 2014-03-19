@@ -1,44 +1,33 @@
-cmake_minimum_required(VERSION 2.4.6)
-include($ENV{ROS_ROOT}/core/rosbuild/rosbuild.cmake)
+cmake_minimum_required(VERSION 2.8.3)
+project(distance_field)
 
-# Set the build type.  Options are:
-#  Coverage       : w/ debug symbols, w/o optimization, w/ code-coverage
-#  Debug          : w/ debug symbols, w/o optimization
-#  Release        : w/o debug symbols, w/ optimization
-#  RelWithDebInfo : w/ debug symbols, w/ optimization
-#  MinSizeRel     : w/o debug symbols, w/ optimization, stripped binaries
-#set(ROS_BUILD_TYPE RelWithDebInfo)
-#set(ROS_BUILD_TYPE Debug)
-set(ROS_BUILD_TYPE Release)
+find_package(catkin REQUIRED COMPONENTS roscpp visualization_msgs)
 
-rosbuild_init()
+find_package(Bullet REQUIRED)
+include_directories(include ${BULLET_INCLUDE_DIRS} ${catkin_INCLUDE_DIRS})
 
-#set the default path for built executables to the "bin" directory
-#set(EXECUTABLE_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/bin)
-#set the default path for built libraries to the "lib" directory
-#set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
+catkin_package(
+	CATKIN_DEPENDS roscpp visualization_msgs
+	DEPENDS bullet
+	INCLUDE_DIRS include
+	LIBRARIES ${PROJECT_NAME}
+)
 
-#uncomment if you have defined messages
-#rosbuild_genmsg()
-#uncomment if you have defined services
-#rosbuild_gensrv()
-
-#common commands for building c++ executables and libraries
-#rosbuild_add_library(${PROJECT_NAME} src/example.cpp)
-#target_link_libraries(${PROJECT_NAME} another_library)
-#rosbuild_add_boost_directories()
-#rosbuild_link_boost(${PROJECT_NAME} thread)
-#rosbuild_add_executable(example examples/example.cpp)
-#target_link_libraries(example ${PROJECT_NAME})
-
-rosbuild_add_library(distance_field
+add_library(distance_field
 	src/pf_distance_field.cpp
 	src/propagation_distance_field.cpp
 )
+target_link_libraries(${PROJECT_NAME} ${BULLET_LIBRARIES} ${catkin_LIBRARIES})
 
-rosbuild_add_gtest(test/test_voxel_grid test/test_voxel_grid.cpp)
-target_link_libraries(test/test_voxel_grid distance_field)
+catkin_add_gtest(test_voxel_grid test/test_voxel_grid.cpp)
+target_link_libraries(test_voxel_grid ${PROJECT_NAME})
 
-rosbuild_add_gtest(test/test_distance_field test/test_distance_field.cpp)
-target_link_libraries(test/test_distance_field distance_field)
+catkin_add_gtest(test_distance_field test/test_distance_field.cpp)
+target_link_libraries(test_distance_field ${PROJECT_NAME})
+
+install(DIRECTORY include/${PROJECT_NAME}
+	DESTINATION ${CATKIN_PACKAGE_INCLUDE_DESTINATION})
+
+install(TARGETS ${PROJECT_NAME}
+	DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION})
 

@@ -1,0 +1,35 @@
+<package>
+  <name>distance_field</name>
+  <version>0.0.1</version>
+  <description>This package contains algorithms that can compute the
+Euclidean Distance Transform (EDT) of a 3-D voxel grid. The input to these algorithms is
+an array of points (which could represent the positions of obstacles in the world). 
+The EDT provides a voxel grid in which in which each cell contains the distance to the
+closest obstacle. The VoxelGrid class can also be used as a generic, templatized container for a discretized 3-D voxel grid.</description>
+  <maintainer email="mail@mrinal.net">Mrinal Kalakrishnan </maintainer>
+
+  <license>BSD</license>
+
+  <url type="website">http://ros.org/wiki/distance_field</url>
+  <!-- <url type="bugtracker"></url> -->
+
+  <author email="mail@mrinal.net">Mrinal Kalakrishnan </author>
+
+  <!-- Dependencies which this package needs to build itself. -->
+  <buildtool_depend>catkin</buildtool_depend>
+
+  <!-- Dependencies needed to compile this package. -->
+  <build_depend>roscpp</build_depend>
+  <build_depend>bullet</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+
+  <!-- Dependencies needed after this package is compiled. -->
+  <run_depend>roscpp</run_depend>
+  <run_depend>bullet</run_depend>
+  <run_depend>visualization_msgs</run_depend>
+
+  <!-- Dependencies needed only for running tests. -->
+  <!-- <test_depend>roscpp</test_depend> -->
+  <!-- <test_depend>visualization_msgs</test_depend> -->
+
+</package>
