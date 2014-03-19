@@ -70,6 +70,7 @@ int main(int argc, char **argv)
   if (segmentation_srv.response.clusters.empty()) exit(0);
 
   //also test segmenting with input table
+  /*
   sleep(0.5);
   segmentation_srv.request.table = segmentation_srv.response.table;
   ROS_INFO("Re-segmenting with the same table shifted 10 cm closer to the robot");
@@ -88,6 +89,7 @@ int main(int argc, char **argv)
     exit(0);
   }
   ROS_INFO("Segmentation service with table input succeeded. Detected %d clusters", (int)segmentation_srv.response.clusters.size());
+  */
 
   service_name = "/tabletop_object_recognition";
   if ( !ros::service::waitForService(service_name, ros::Duration().fromSec(3.0)) )
@@ -115,7 +117,9 @@ int main(int argc, char **argv)
     }
     else
     {
-      ROS_INFO("  Model id %d",recognition_srv.response.models[i].model_list[0].model_id);
+      ROS_INFO("  Model id %d with confidence %f",
+               recognition_srv.response.models[i].model_list[0].model_id,
+               recognition_srv.response.models[i].model_list[0].confidence);
     }
   }
 
