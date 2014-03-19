@@ -63,6 +63,7 @@
 #include <pcl/segmentation/extract_polygonal_prism_data.h>
 #include <pcl/segmentation/extract_clusters.h>
 #include <pcl_ros/transforms.h>
+#include <pcl_conversions/pcl_conversions.h>
 
 #include "tabletop_object_detector/marker_generator.h"
 #include "tabletop_object_detector/TabletopSegmentation.h"
@@ -451,7 +452,7 @@ bool TabletopSegmentor::tableMsgToPointCloud (Table &table, std::string frame_id
   //use table.pose (PoseStamped) to transform table.convex_hull.vertices (Point[]) into a pcl::PointCloud in frame_id
   ros::Time now = ros::Time::now();
   PointCloudType table_frame_points;
-  table_frame_points.header.stamp = now;
+  table_frame_points.header.stamp = now.toNSec();
   table_frame_points.header.frame_id = "table_frame";
   table_frame_points.points.resize(table.convex_hull.vertices.size());
   for(size_t i=0; i < table.convex_hull.vertices.size(); i++)
@@ -501,7 +502,7 @@ bool TabletopSegmentor::tableMsgToPointCloud (Table &table, std::string frame_id
     if (transform_success) break;
   }
   table_hull.header.frame_id = frame_id;
-  table_hull.header.stamp = now;
+  table_hull.header.stamp = now.toNSec();
 
   //copy the transformed points back into the Table message and set the pose to identity in the cloud frame
   for(size_t i=0; i < table.convex_hull.vertices.size(); i++)
@@ -526,7 +527,8 @@ bool TabletopSegmentor::tableMsgToPointCloud (Table &table, std::string frame_id
   }
   mesh.triangles = table.convex_hull.triangles;
   visualization_msgs::Marker tableMarker = MarkerGenerator::getConvexHullTableMarker(mesh);
-  tableMarker.header = table_hull.header;
+  pcl_conversions::fromPCL(table_hull.header, tableMarker.header);
+  //tableMarker.header = table_hull.header;
   tableMarker.pose.orientation.w = 1.0;
   tableMarker.ns = "tabletop_node";
   tableMarker.id = current_marker_id_++;
@@ -542,7 +544,9 @@ bool getPlanePoints (const pcl::PointCloud<PointT> &table,
 		     sensor_msgs::PointCloud &table_points)
 {
   // Prepare the output
-  table_points.header = table.header;
+  //table_points.header = table.header;
+  pcl_conversions::fromPCL(table.header, table_points.header);
+      
   table_points.points.resize (table.points.size ());
   for (size_t i = 0; i < table.points.size (); ++i)
   {
@@ -553,8 +557,8 @@ bool getPlanePoints (const pcl::PointCloud<PointT> &table,
 
   // Transform the data
   tf::TransformListener listener;
-  tf::StampedTransform table_pose_frame(table_plane_trans, table.header.stamp, 
-                                        table.header.frame_id, "table_frame");
+  tf::StampedTransform table_pose_frame(table_plane_trans, table_points.header.stamp, 
+                                        table_points.header.frame_id, "table_frame");
   listener.setTransform(table_pose_frame);
   std::string error_msg;
   if (!listener.canTransform("table_frame", table_points.header.frame_id, table_points.header.stamp, &error_msg))
@@ -585,7 +589,6 @@ bool getPlanePoints (const pcl::PointCloud<PointT> &table,
     }
     if (transform_success) break;
   }
-  table_points.header.stamp = table.header.stamp;
   table_points.header.frame_id = "table_frame";
   return true;
 }

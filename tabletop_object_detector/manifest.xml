@@ -17,8 +17,9 @@
   <depend package="geometry_msgs" />
   <depend package="shape_msgs" />
 
-  <depend package="pcl"/>
+<!--  <depend package="perception_pcl"/> -->
   <depend package="pcl_ros"/>
+  <depend package="pcl_conversions"/>
   <depend package="distance_field"/>
   <depend package="household_objects_database_msgs" />
 
