@@ -49,6 +49,7 @@ rosbuild_link_boost(tabletop_object_recognition system)
 
 rosbuild_add_executable(tabletop_complete_node src/tabletop_complete_node.cpp)
 
+rosbuild_add_executable(ping_tabletop_segmentation src/ping_tabletop_segmentation.cpp)
 rosbuild_add_executable(ping_tabletop_node src/ping_tabletop_node.cpp)
 
 rosbuild_add_executable(publish_database_object src/publish_database_object.cpp)
