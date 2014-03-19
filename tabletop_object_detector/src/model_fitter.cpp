@@ -36,7 +36,7 @@
 
 #include "tabletop_object_detector/model_fitter.h"
 
-#include "distance_field/propagation_distance_field.h"
+#include "moveit/distance_field/propagation_distance_field.h"
 #include "tabletop_object_detector/iterative_distance_fitter.h"
 
 namespace tabletop_object_detector {
@@ -52,7 +52,7 @@ DistanceFieldFitter::~DistanceFieldFitter()
   delete distance_voxel_grid_;
 }
 
-void DistanceFieldFitter::initializeFromBtVectors(const std::vector<tf::Vector3> &points) 
+void DistanceFieldFitter::initializeFromPoints(const EigenSTL::vector_Vector3d &points) 
 {
   delete distance_voxel_grid_;
   distance_voxel_grid_ = NULL;
@@ -61,7 +61,7 @@ void DistanceFieldFitter::initializeFromBtVectors(const std::vector<tf::Vector3>
     return;
   }
 
-  tf::Vector3 min = points[0], max = points[0];
+  Eigen::Vector3d min = points[0], max = points[0];
   for (size_t i=0; i<points.size(); ++i) 
   {
     for (size_t j=0; j<3; ++j) 
@@ -100,7 +100,7 @@ void DistanceFieldFitter::initializeFromBtVectors(const std::vector<tf::Vector3>
   distance_voxel_grid_->addPointsToField(points);
 }
 
-double dist(const tf::Vector3 &v0, const tf::Vector3 &v1)
+double dist(const Eigen::Vector3d &v0, const Eigen::Vector3d &v1)
 {
   return sqrt( (v1.x()-v0.x())*(v1.x()-v0.x()) + 
 	       (v1.y()-v0.y())*(v1.y()-v0.y()) +  
@@ -116,11 +116,11 @@ double dist(const tf::Vector3 &v0, const tf::Vector3 &v1)
 
   The vertices themselves are NOT returned in the set of points.
 */
-std::vector<tf::Vector3> interpolateTriangle(tf::Vector3 v0, 
-					   tf::Vector3 v1, 
-					   tf::Vector3 v2, double min_res)
+EigenSTL::vector_Vector3d interpolateTriangle(Eigen::Vector3d v0, 
+                                              Eigen::Vector3d v1, 
+                                              Eigen::Vector3d v2, double min_res)
 {
-  std::vector<tf::Vector3> vectors;
+  EigenSTL::vector_Vector3d vectors;
 
   //find out the interpolation resolution for the first coordinate
   //based on the size of the 0-1 and 0-2 edges
@@ -140,8 +140,8 @@ std::vector<tf::Vector3> interpolateTriangle(tf::Vector3 v0,
       done = true;
     }
     //compute the resolution for the second interpolation
-    tf::Vector3 p1 = t0*v0 + (1-t0) * v1;
-    tf::Vector3 p2 = t0*v0 + (1-t0) * v2;
+    Eigen::Vector3d p1 = t0*v0 + (1-t0) * v1;
+    Eigen::Vector3d p2 = t0*v0 + (1-t0) * v2;
     double d12 = dist(p1, p2);
     double res_12 = min_res / d12;
 
@@ -170,44 +170,44 @@ std::vector<tf::Vector3> interpolateTriangle(tf::Vector3 v0,
 }
 
 void ModelToCloudFitter::sampleMesh(const shape_msgs::Mesh &mesh, 
-				    std::vector<tf::Vector3> &btVectors,
+				    EigenSTL::vector_Vector3d& points,
 				    double resolution)
 {
-  btVectors.reserve(mesh.vertices.size());
+  points.reserve(mesh.vertices.size());
   //vertices themselves get inserted explicitly here. If we inserted them
   //as part of triangles, we would insert each vertex multiple times
   typedef std::vector<geometry_msgs::Point>::const_iterator I;
   for (I i=mesh.vertices.begin(); i!=mesh.vertices.end(); i++) 
   {
-    btVectors.push_back(tf::Vector3(i->x,i->y,i->z));
+    points.push_back(Eigen::Vector3d(i->x,i->y,i->z));
   }
   
   //sample triangle surfaces at a specified min-resolution 
   //and insert the resulting points
   for (size_t i=0; i<mesh.triangles.size(); i++)
   {
-    tf::Vector3 v0( mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(0) ).x,
-		    mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(0) ).y,
-		    mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(0) ).z);
-    tf::Vector3 v1( mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(1) ).x,
-		    mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(1) ).y,
-		    mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(1) ).z);
-    tf::Vector3 v2( mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(2) ).x,
-		    mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(2) ).y,
-		    mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(2) ).z);
-    std::vector<tf::Vector3> triangleVectors = interpolateTriangle(v0, v1, v2, resolution);
-    btVectors.insert(btVectors.begin(), triangleVectors.begin(), triangleVectors.end());
+    Eigen::Vector3d v0( mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(0) ).x,
+                        mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(0) ).y,
+                        mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(0) ).z);
+    Eigen::Vector3d v1( mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(1) ).x,
+                        mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(1) ).y,
+                        mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(1) ).z);
+    Eigen::Vector3d v2( mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(2) ).x,
+                        mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(2) ).y,
+                        mesh.vertices.at( mesh.triangles.at(i).vertex_indices.at(2) ).z);
+    EigenSTL::vector_Vector3d triangleVectors = interpolateTriangle(v0, v1, v2, resolution);
+    points.insert(points.begin(), triangleVectors.begin(), triangleVectors.end());
   }
 }
 
 
 void DistanceFieldFitter::initializeFromMesh(const shape_msgs::Mesh &mesh)
 {
-  std::vector<tf::Vector3> btVectors;
+  EigenSTL::vector_Vector3d points;
   //we use a slightly larger resolution than the distance field, in an attempt to bring
   //down pre-computation time
-  sampleMesh(mesh, btVectors,  1.5 * distance_field_resolution_ ); 
-  initializeFromBtVectors(btVectors);
+  sampleMesh(mesh, points,  1.5 * distance_field_resolution_ ); 
+  initializeFromPoints(points);
 }
 
 

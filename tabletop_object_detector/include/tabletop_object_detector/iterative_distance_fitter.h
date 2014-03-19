@@ -37,7 +37,7 @@
 #include "tabletop_object_detector/model_fitter.h"
 
 #include <math.h>
-#include <distance_field/propagation_distance_field.h>
+#include <moveit/distance_field/propagation_distance_field.h>
 
 #include "tabletop_object_detector/marker_generator.h"
 
@@ -118,7 +118,7 @@ double IterativeTranslationFitter::getFitScoreAndGradient(const PointCloudType& 
     double val = truncate_value_;
     if (distance_voxel_grid_->worldToGrid(wx,wy,wz,x,y,z)) 
     {
-      distance_field::PropDistanceFieldVoxel& voxel = distance_voxel_grid_->getCell(x,y,z);
+      const distance_field::PropDistanceFieldVoxel& voxel = distance_voxel_grid_->getCell(x,y,z);
       double cx, cy, cz;
       if (voxel.closest_point_[0] != distance_field::PropDistanceFieldVoxel::UNINITIALIZED) 
       {
@@ -126,7 +126,7 @@ double IterativeTranslationFitter::getFitScoreAndGradient(const PointCloudType& 
 					  voxel.closest_point_[1],
 					  voxel.closest_point_[2],
 					  cx,cy,cz);
-	val = distance_voxel_grid_->getDistanceFromCell(x,y,z);
+	val = distance_voxel_grid_->getDistance(x,y,z);
 	vector.x += (cx-wx);
 	vector.y += (cy-wy);
 	vector.z += (cz-wz);
