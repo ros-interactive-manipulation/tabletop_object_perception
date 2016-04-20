@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 2.8.3)
 project(tabletop_object_detector)
 
 find_package(catkin REQUIRED COMPONENTS
+  cmake_modules
   eigen_stl_containers
   geometry_msgs
   household_objects_database_msgs
@@ -14,7 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
   shape_msgs
   std_msgs
   tf
-	visualization_msgs
+  visualization_msgs
 )
 
 find_package(Eigen REQUIRED)
